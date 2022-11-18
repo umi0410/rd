@@ -22,5 +22,5 @@ _testmain.go
 
 
 
-config
+config/*
 !config/default.yaml

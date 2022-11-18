@@ -40,7 +40,7 @@ search engine list of your web browser.`,
 func init() {
 	rootCmd.AddCommand(runCmd)
 
-	host := runCmd.Flags().StringP("host", "h", "127.0.0.1", "Host to listen")
+	host := runCmd.Flags().StringP("host", "h", "0.0.0.0", "Host to listen")
 	port := runCmd.Flags().StringP("port", "p", "18080", "Port to listen")
 
 	st, err := store.NewLocalStore()

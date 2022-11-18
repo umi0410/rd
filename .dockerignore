@@ -23,5 +23,5 @@ _testmain.go
 
 
 assets
-config
+config/*
 !config/default.yaml

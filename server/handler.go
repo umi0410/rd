@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
+	log "github.com/sirupsen/logrus"
 	"rd/domain"
 )
 
@@ -13,6 +14,7 @@ var (
 
 func (s *Server) GoTo(c *fiber.Ctx) error {
 	alias := c.Query("alias")
+	log.Infof("alias=%s", alias)
 	var aliasDescriptors []*domain.AliasDescriptor
 	if alias == "" {
 		aliasDescriptors = s.aliasDescriptorRepository.List()

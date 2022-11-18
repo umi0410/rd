@@ -8,6 +8,20 @@ Try setting aliases of the urls where your everyday and be free from using a mou
 
 ## Use cases (To be updated)
 
+## Getting Started
+
+If you are hesitating to use rd, just try it with CLI. You don't have to use browsers always.
+
+```shell
+# start running rd
+docker run --rm -p 18080:18080 umi0410/rd
+```
+
+```shell
+# open a new terminal and try alias "rd" to be redirect to README.md of rd.
+curl -sL localhost:18080/goto?alias=rd | head -n 3
+```
+
 ## How to use
 
 * [chrome](#Chrome)
@@ -50,7 +64,16 @@ You can use rd with docker with the following commands.
 
 ```shell
 docker build . -t umi0410/rd
-docker run -p 18080:18080 -v ${HOME}/.config/rd/local.yaml:/app/config/local.yaml \
+docker run --rm -p 18080:18080 -v ${HOME}/.config/rd/local.yaml:/app/config/local.yaml \
   -e RD_CONFIG_NAME=local \
+  umi0410/rd
+```
+
+If you decided to use rd, please run rd with the following commands to run it always.
+
+```shell
+docker run --name rd -p 18080:18080 -v ${HOME}/.config/rd/local.yaml:/app/config/local.yaml \
+  -e RD_CONFIG_NAME=local \
+  -d --restart=always \
   umi0410/rd
 ```

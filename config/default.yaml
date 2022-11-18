@@ -1,0 +1,3 @@
+aliasDescriptors:
+- alias: rd
+  destination: https://raw.githubusercontent.com/umi0410/rd/main/README.md

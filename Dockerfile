@@ -9,4 +9,6 @@ RUN go build -o rd
 FROM alpine
 WORKDIR /app
 COPY --from=builder /app/rd .
+COPY ./config/default.yaml /app/config/default.yaml
+ENV RD_CONFIG_NAME=default
 CMD ["./rd"]
