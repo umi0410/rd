@@ -1,6 +1,9 @@
 ```shell
 export GOPATH=${HOME}/go
 go install github.com/spf13/cobra-cli@latest
+echo "author: Jinsu Park <dev.umijs@gmail.com>
+license: apache
+useViper: true" > ~/.cobra.yaml
 ```
 
 ```shell
