@@ -5,11 +5,19 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/pkg/errors"
+	promCli "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
 	"rd/service"
 )
 
-var app *fiber.App
+var (
+	app              *fiber.App
+	redirectionCount = promauto.NewCounterVec(promCli.CounterOpts{
+		Name: "rd_redirection_count",
+		Help: "The total number of redirections.",
+	}, []string{"alias", "destination"})
+)
 
 func NewServer(aliasDescriptorRepository service.AliasDescriptorRepository) (*Server, error) {
 	s := &Server{

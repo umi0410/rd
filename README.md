@@ -77,3 +77,49 @@ docker run --name rd -p 18080:18080 -v ${HOME}/.config/rd/local.yaml:/app/config
   -d --restart=always \
   umi0410/rd
 ```
+
+## Statistics
+
+![](./assets/stat-datadog.png)
+
+```shell
+$ curl http://localhost:18090/metrics -s | grep rd_redirection
+# HELP rd_redirection_count The total number of redirections.
+# TYPE rd_redirection_count counter
+rd_redirection_count{alias="blog",destination="https://umi0410.github.io"} 18
+# if destionation is empty, it means the alias is not registered
+# and forwarded to Google search.
+rd_redirection_count{alias="guitar",destination=""} 33
+...
+```
+
+You can export OpenMetrics about redirections by rd and of course, can connect them 
+with DataDog and other monitoring tools.
+
+Later, it might be automated to register aliases which you frequently use but not registered.
+
+### How to collect statistics
+
+```shell
+# Run a datadog-agent to collect metrics from your rd server
+docker run --cgroupns host --pid host \
+--rm --name dd-agent \
+-v /var/run/docker.sock:/var/run/docker.sock:ro \
+-v /proc/:/host/proc/:ro \
+-v /sys/fs/cgroup/:/host/sys/fs/cgroup:ro  \
+-e DD_API_KEY=<<REPLACE THIS WITH YOUR API KEY>> \
+-e DD_SITE=datadoghq.com \
+gcr.io/datadoghq/agent:latest
+```
+
+```shell
+docker run --rm --name rd -p 18080:18080 -p 18090:18090 \
+  -v ${HOME}/.config/rd/local.yaml:/app/config/local.yaml \
+  -e RD_CONFIG_NAME=local \
+  -l com.datadoghq.ad.check_names='["openmetrics"]' \
+  -l com.datadoghq.ad.init_configs='[{}]' \
+  -l com.datadoghq.ad.instances='[{"openmetrics_endpoint":"http://%%host%%:%%port%%/metrics","metrics":[{"rd_redirection_count":"rd_redirection_count"}]}]' \
+  umi0410/rd
+```
+
+Documentation from datadog: https://docs.datadoghq.com/containers/docker/prometheus/

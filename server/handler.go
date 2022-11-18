@@ -12,8 +12,25 @@ var (
 	defaultSearchURLFormat = "https://google.com/search?q=%s"
 )
 
+var (
+	labelAlias       = "alias"
+	labelDestination = "destination"
+)
+
 func (s *Server) GoTo(c *fiber.Ctx) error {
 	alias := c.Query("alias")
+	destination := ""
+	defer func() {
+		labels := map[string]string{
+			"alias":       alias,
+			"destination": destination,
+		}
+		//if destination != "" {
+		//	labels["destination"] = destination
+		//}
+		redirectionCount.With(labels).Inc()
+		log.Infof("Increased the counter.")
+	}()
 	log.Infof("alias=%s", alias)
 	var aliasDescriptors []*domain.AliasDescriptor
 	if alias == "" {
@@ -27,7 +44,7 @@ func (s *Server) GoTo(c *fiber.Ctx) error {
 	}
 
 	if len(aliasDescriptors) == 1 {
-		destination := aliasDescriptors[0].Destination
+		destination = aliasDescriptors[0].Destination
 
 		return c.Redirect(destination, fiber.StatusSeeOther)
 	}
