@@ -14,3 +14,8 @@ cobra-cli add list
 cobra-cli add reload
 cobra-cli add run 
 ```
+
+```shell
+mkdir -p ${HOME}/.config/mytot
+ln -s $(pwd)/config/local.yaml ${HOME}/.config/mytot/local.yaml
+```

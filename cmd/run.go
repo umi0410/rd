@@ -18,7 +18,12 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"mytot/repository"
+	"mytot/repository/store"
+	"mytot/server"
 )
 
 // runCmd represents the run command
@@ -35,6 +40,26 @@ search engine list of your web browser.`,
 func init() {
 	rootCmd.AddCommand(runCmd)
 
+	host := runCmd.Flags().StringP("host", "h", "127.0.0.1", "Host to listen")
+	port := runCmd.Flags().StringP("port", "p", "18080", "Port to listen")
+
+	st, err := store.NewLocalStore()
+	if err != nil {
+		log.Fatalf("%+v", errors.WithStack(err))
+	}
+
+	aliasDescriptorRepository := &repository.LocalAliasDescriptorRepository{
+		Store: st,
+	}
+
+	s, err := server.NewServer(aliasDescriptorRepository)
+	if err != nil {
+		log.Errorf("%+v", err)
+	}
+
+	if err := s.Run(*host, *port); err != nil {
+		log.Errorf("%+v", err)
+	}
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
