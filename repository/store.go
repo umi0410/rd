@@ -1,6 +1,6 @@
 package repository
 
-import "mytot/domain"
+import "rd/domain"
 
 type Store interface {
 	Add(*domain.AliasDescriptor) error

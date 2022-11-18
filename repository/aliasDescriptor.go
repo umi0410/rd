@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"mytot/domain"
+	"rd/domain"
 )
 
 type LocalAliasDescriptorRepository struct {

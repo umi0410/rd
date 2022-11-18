@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"mytot/service"
+	"rd/service"
 )
 
 var app *fiber.App

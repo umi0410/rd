@@ -1,0 +1,26 @@
+# from https://github.com/golang/go/blob/master/.gitignore
+.DS_Store
+*.[56789ao]
+*.a[56789o]
+*.so
+*.pyc
+._*
+.nfs.*
+[56789a].out
+*~
+*.orig
+*.rej
+*.exe
+.*.swp
+core
+*.cgo*.go
+*.cgo*.c
+_cgo_*
+_obj
+_test
+_testmain.go
+
+
+
+config
+!config/default.yaml

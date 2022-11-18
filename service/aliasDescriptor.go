@@ -1,6 +1,6 @@
 package service
 
-import "mytot/domain"
+import "rd/domain"
 
 type AliasDescriptorRepository interface {
 	List() []*domain.AliasDescriptor

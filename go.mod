@@ -1,4 +1,4 @@
-module mytot
+module rd
 
 go 1.18
 

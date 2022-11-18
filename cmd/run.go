@@ -21,16 +21,16 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"mytot/repository"
-	"mytot/repository/store"
-	"mytot/server"
+	"rd/repository"
+	"rd/repository/store"
+	"rd/server"
 )
 
 // runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "run",
-	Short: "run mytot server",
-	Long: `run mytot server. You are recommended to add the server to the 
+	Short: "run rd server",
+	Long: `run rd server. You are recommended to add the server to the 
 search engine list of your web browser.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("run called")

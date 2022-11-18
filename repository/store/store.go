@@ -4,9 +4,8 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"mytot/domain"
+	"rd/domain"
 )
 
 type LocalStore struct {
@@ -22,8 +21,9 @@ type config struct {
 func NewLocalStore() (*LocalStore, error) {
 	vp := viper.New()
 	vp.SetConfigType("yaml")
-	vp.AddConfigPath(os.ExpandEnv("${HOME}/.config/mytot"))
-	configName := os.Getenv("MYTOT_CONFIG_NAME")
+	vp.AddConfigPath(os.ExpandEnv("${HOME}/.config/rd"))
+	vp.AddConfigPath(os.ExpandEnv("./config/rd"))
+	configName := os.Getenv("RD_CONFIG_NAME")
 	if configName == "" {
 		configName = "default"
 	}
@@ -84,9 +84,10 @@ func (s *LocalStore) Delete() error {
 func (s *LocalStore) Reload() error {
 	if err := s.vp.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Error("here")
+			// skip
+		} else {
+			return errors.WithStack(err)
 		}
-		return errors.WithStack(err)
 	}
 
 	if err := s.vp.Unmarshal(s.config); err != nil {
