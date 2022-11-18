@@ -1,0 +1,11 @@
+aliasDescriptors:
+- alias: blog
+  destination: https://umi0410.github.io
+- alias: umi0410
+  destination: https://github.com
+
+# alias에 대해 여러 개의 destination이 존재하는 경우
+- alias: argocd
+  destination: https://argo-cd.readthedocs.io/en/stable/
+- alias: argocd
+  destination: https://github.com/argoproj/argo-cd/
