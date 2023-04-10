@@ -18,11 +18,11 @@ var (
 )
 
 func (s *Server) GoTo(c *fiber.Ctx) error {
-	alias := c.Query("alias")
+	qAlias := c.Query("alias")
 	destination := ""
 	defer func() {
 		labels := map[string]string{
-			"alias":       alias,
+			"alias":       qAlias,
 			"destination": destination,
 		}
 		//if destination != "" {
@@ -31,24 +31,28 @@ func (s *Server) GoTo(c *fiber.Ctx) error {
 		redirectionCount.With(labels).Inc()
 		log.Infof("Increased the counter.")
 	}()
-	log.Infof("alias=%s", alias)
-	var aliasDescriptors []*domain.AliasDescriptor
-	if alias == "" {
-		aliasDescriptors = s.aliasDescriptorRepository.List()
+	log.Infof("qAlias=%s", qAlias)
+	var aliases []*domain.Alias
+	if qAlias == "" {
+		aliases = s.aliasRepository.List()
 	} else {
-		aliasDescriptors = s.aliasDescriptorRepository.ListByAlias(alias)
+		aliases = s.aliasRepository.ListByAlias(qAlias)
 	}
 
-	if 1 < len(aliasDescriptors) {
-		return c.JSON(aliasDescriptors)
+	if 1 < len(aliases) {
+		return c.JSON(aliases)
 	}
 
-	if len(aliasDescriptors) == 1 {
-		destination = aliasDescriptors[0].Destination
+	if len(aliases) == 1 {
+		destination = aliases[0].Destination
 
 		return c.Redirect(destination, fiber.StatusSeeOther)
 	}
 
 	// Not Found일 때는 google search
-	return c.Redirect(fmt.Sprintf(defaultSearchURLFormat, alias), fiber.StatusSeeOther)
+	return c.Redirect(fmt.Sprintf(defaultSearchURLFormat, qAlias), fiber.StatusSeeOther)
+}
+
+func (s *Server) ListAliases(c *fiber.Ctx) error {
+	return c.JSON(s.aliasRepository.List())
 }

@@ -19,19 +19,20 @@ var (
 	}, []string{"alias", "destination"})
 )
 
-func NewServer(aliasDescriptorRepository service.AliasDescriptorRepository) (*Server, error) {
+func NewServer(aliasDescriptorRepository service.AliasRepository) (*Server, error) {
 	s := &Server{
-		aliasDescriptorRepository: aliasDescriptorRepository,
+		aliasRepository: aliasDescriptorRepository,
 	}
 
 	app = fiber.New()
 	app.Get("/goto", s.GoTo)
+	app.Get("/aliases", s.ListAliases)
 
 	return s, nil
 }
 
 type Server struct {
-	aliasDescriptorRepository service.AliasDescriptorRepository
+	aliasRepository service.AliasRepository
 }
 
 func (s *Server) Run(host, port string) error {

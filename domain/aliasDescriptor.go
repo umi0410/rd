@@ -1,7 +1,7 @@
 package domain
 
-type AliasDescriptor struct {
+type Alias struct {
 	//ID          int
-	Alias       string
+	Name        string
 	Destination string
 }

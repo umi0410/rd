@@ -10,7 +10,7 @@ import (
 
 func Run() {
 	http.Handle("/metrics", promhttp.Handler())
-	if err := http.ListenAndServe(":18090", nil); err != nil {
+	if err := http.ListenAndServe(":18091", nil); err != nil {
 		log.Fatalf("%+v", errors.WithStack(err))
 	}
 }

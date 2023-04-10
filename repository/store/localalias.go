@@ -10,13 +10,13 @@ import (
 )
 
 type LocalStore struct {
-	vp               *viper.Viper
-	config           *config
-	aliasDescriptors map[string][]*domain.AliasDescriptor
+	vp      *viper.Viper
+	config  *config
+	aliases map[string][]*domain.Alias
 }
 
 type config struct {
-	AliasDescriptors []*domain.AliasDescriptor
+	Aliases []*domain.Alias
 }
 
 func NewLocalStore() (*LocalStore, error) {
@@ -31,9 +31,9 @@ func NewLocalStore() (*LocalStore, error) {
 	vp.SetConfigName(configName)
 
 	store := &LocalStore{
-		config:           new(config),
-		vp:               vp,
-		aliasDescriptors: map[string][]*domain.AliasDescriptor{},
+		config:  new(config),
+		vp:      vp,
+		aliases: map[string][]*domain.Alias{},
 	}
 
 	if err := store.Reload(); err != nil {
@@ -43,9 +43,9 @@ func NewLocalStore() (*LocalStore, error) {
 	return store, nil
 }
 
-func (s *LocalStore) Add(aliasDescriptor *domain.AliasDescriptor) error {
-	s.config.AliasDescriptors = append(s.config.AliasDescriptors, aliasDescriptor)
-	viper.Set("config.aliasDescriptors", s.config.AliasDescriptors)
+func (s *LocalStore) Add(aliasDescriptor *domain.Alias) error {
+	s.config.Aliases = append(s.config.Aliases, aliasDescriptor)
+	viper.Set("config.aliases", s.config.Aliases)
 	if err := viper.WriteConfig(); err != nil {
 		return errors.WithStack(err)
 	}
@@ -53,25 +53,25 @@ func (s *LocalStore) Add(aliasDescriptor *domain.AliasDescriptor) error {
 	return nil
 }
 
-func (s *LocalStore) List() []*domain.AliasDescriptor {
-	var ret []*domain.AliasDescriptor
-	for _, dscList := range s.aliasDescriptors {
+func (s *LocalStore) List() []*domain.Alias {
+	var ret []*domain.Alias
+	for _, dscList := range s.aliases {
 		for _, dsc := range dscList {
 			ret = append(ret, dsc)
 		}
 	}
 
 	if ret == nil {
-		ret = []*domain.AliasDescriptor{}
+		ret = []*domain.Alias{}
 	}
 
 	return ret
 }
 
-func (s *LocalStore) ListByAlias(alias string) []*domain.AliasDescriptor {
-	ret := s.aliasDescriptors[alias]
+func (s *LocalStore) ListByAlias(alias string) []*domain.Alias {
+	ret := s.aliases[alias]
 	if ret == nil {
-		ret = []*domain.AliasDescriptor{}
+		ret = []*domain.Alias{}
 	}
 
 	return ret
@@ -98,8 +98,8 @@ func (s *LocalStore) Reload() error {
 		return errors.WithStack(err)
 	}
 
-	for _, dsc := range s.config.AliasDescriptors {
-		s.aliasDescriptors[dsc.Alias] = append(s.aliasDescriptors[dsc.Alias], dsc)
+	for _, dsc := range s.config.Aliases {
+		s.aliases[dsc.Name] = append(s.aliases[dsc.Name], dsc)
 	}
 
 	return nil

@@ -42,18 +42,18 @@ func init() {
 	rootCmd.AddCommand(runCmd)
 
 	host := runCmd.Flags().StringP("host", "h", "0.0.0.0", "Host to listen")
-	port := runCmd.Flags().StringP("port", "p", "18080", "Port to listen")
+	port := runCmd.Flags().StringP("port", "p", "18081", "Port to listen")
 
 	st, err := store.NewLocalStore()
 	if err != nil {
 		log.Fatalf("%+v", errors.WithStack(err))
 	}
 
-	aliasDescriptorRepository := &repository.LocalAliasDescriptorRepository{
+	aliasRepository := &repository.LocalAliasRepository{
 		Store: st,
 	}
 
-	s, err := server.NewServer(aliasDescriptorRepository)
+	s, err := server.NewServer(aliasRepository)
 	if err != nil {
 		log.Errorf("%+v", err)
 	}
