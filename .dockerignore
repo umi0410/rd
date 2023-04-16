@@ -22,6 +22,9 @@ _testmain.go
 
 
 
-assets
+assets/*
+!assets/favicon.ico
+
 config/*
 !config/default.yaml
+!config/config.go

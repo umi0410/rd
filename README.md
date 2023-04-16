@@ -66,7 +66,7 @@ You can use rd with docker with the following commands.
 docker build . -t umi0410/rd
 docker run --rm -p 18080:18080 -v ${HOME}/.config/rd/local.yaml:/app/config/local.yaml \
   -e RD_CONFIG_NAME=local \
-  umi0410/rd
+  umi0410/rd run
 ```
 
 If you decided to use rd, please run rd with the following commands to run it always.
@@ -75,7 +75,7 @@ If you decided to use rd, please run rd with the following commands to run it al
 docker run --name rd -p 18080:18080 -v ${HOME}/.config/rd/local.yaml:/app/config/local.yaml \
   -e RD_CONFIG_NAME=local \
   -d --restart=always \
-  umi0410/rd
+  umi0410/rd run
 ```
 
 ## Statistics
@@ -119,7 +119,7 @@ docker run --rm --name rd -p 18080:18080 -p 18090:18090 \
   -l com.datadoghq.ad.check_names='["openmetrics"]' \
   -l com.datadoghq.ad.init_configs='[{}]' \
   -l com.datadoghq.ad.instances='[{"openmetrics_endpoint":"http://%%host%%:%%port%%/metrics","metrics":[{"rd_redirection_count":"rd_redirection_count"}]}]' \
-  umi0410/rd
+  umi0410/rd run
 ```
 
 Documentation from datadog: https://docs.datadoghq.com/containers/docker/prometheus/

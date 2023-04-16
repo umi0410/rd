@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/gofiber/fiber/v2/middleware/favicon"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/pkg/errors"
@@ -25,6 +26,10 @@ func NewServer(aliasDescriptorRepository service.AliasRepository) (*Server, erro
 	}
 
 	app = fiber.New()
+	app.Use(favicon.New(favicon.Config{
+		File: "./assets/favicon.ico",
+	}))
+
 	app.Get("/goto", s.GoTo)
 	app.Get("/aliases", s.ListAliases)
 

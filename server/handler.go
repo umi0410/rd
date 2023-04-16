@@ -40,10 +40,12 @@ func (s *Server) GoTo(c *fiber.Ctx) error {
 	}
 
 	var aliases []*domain.Alias
-	if qAlias == "" {
-		aliases = s.aliasRepository.List()
+	if len(qGroup) != 0 && len(qAlias) != 0 {
+		aliases = s.aliasRepository.ListByGroupAndAlias(qGroup, qAlias)
+	} else if qAlias == "" {
+		aliases = s.aliasRepository.ListByGroup(qGroup)
 	} else {
-		aliases = s.aliasRepository.ListByGroup(qAlias)
+		aliases = s.aliasRepository.List()
 	}
 
 	if 1 < len(aliases) {

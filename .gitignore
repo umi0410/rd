@@ -24,3 +24,4 @@ _testmain.go
 
 config/*
 !config/default.yaml
+!config/config.go

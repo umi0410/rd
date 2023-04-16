@@ -77,12 +77,18 @@ func (repo *NatsRepository) watch() error {
 
 	for objInfo := range repo.objWatcher.Updates() {
 		// objInfo.Name means the name of the file in the bucket which is updated.
-		log.Infof("Here")
 		if objInfo == nil {
 			log.Infof("pass")
 			continue
 		}
 		log.Infof("Object watcher got updated(Digest=%s, Bucket=%s, Object=%s, Deleted=%t), ", objInfo.Digest, objInfo.Bucket, objInfo.Name, objInfo.Deleted)
+		// cut off `.yaml`.
+		group := strings.TrimSuffix(objInfo.Name, ".yaml")
+
+		if objInfo.Deleted {
+			delete(repo.aliases, group)
+			continue
+		}
 		// name argument means the name of the file in the bucket
 		// file argument means the name of the local file as the destination
 		//repo.objStore.GetFile(objInfo.Name, objInfo.Name)
@@ -106,14 +112,13 @@ func (repo *NatsRepository) watch() error {
 			continue
 		}
 
-		group := strings.TrimSuffix(objInfo.Name, ".yaml")
-		// TODO: Log the comparison between before and after
 		for _, a := range aliases {
 			a.Group = group
 		}
 
 		repo.aliases[group] = aliases
 
+		// TODO: Log the comparison between before and after
 		log.Infof("The update(Digest=%s, Bucket=%s, Object=%s, Deleted=%t) has been applied to the repository.", objInfo.Digest, objInfo.Bucket, objInfo.Name, objInfo.Deleted)
 	}
 

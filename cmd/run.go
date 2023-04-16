@@ -70,5 +70,5 @@ func init() {
 
 	// XXX: shorthand h is already defined for help command.
 	host = runCmd.Flags().StringP("host", "", "0.0.0.0", "Host to listen")
-	port = runCmd.Flags().StringP("port", "p", "18081", "Port to listen")
+	port = runCmd.Flags().StringP("port", "p", "18080", "Port to listen")
 }

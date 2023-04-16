@@ -10,5 +10,6 @@ FROM alpine
 WORKDIR /app
 COPY --from=builder /app/rd .
 COPY ./config/default.yaml /app/config/default.yaml
+COPY ./assets/favicon.ico /app/assets/favicon.ico
 ENV RD_CONFIG_NAME=default
-CMD ["./rd"]
+ENTRYPOINT ["./rd"]
