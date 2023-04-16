@@ -4,5 +4,6 @@ import "rd/domain"
 
 type AliasRepository interface {
 	List() []*domain.Alias
-	ListByAlias(alias string) []*domain.Alias
+	ListByGroup(group string) []*domain.Alias
+	ListByGroupAndAlias(group, alias string) []*domain.Alias
 }

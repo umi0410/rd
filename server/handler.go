@@ -18,10 +18,12 @@ var (
 )
 
 func (s *Server) GoTo(c *fiber.Ctx) error {
+	qGroup := c.Query("group")
 	qAlias := c.Query("alias")
 	destination := ""
 	defer func() {
 		labels := map[string]string{
+			"group":       qGroup,
 			"alias":       qAlias,
 			"destination": destination,
 		}
@@ -31,12 +33,17 @@ func (s *Server) GoTo(c *fiber.Ctx) error {
 		redirectionCount.With(labels).Inc()
 		log.Infof("Increased the counter.")
 	}()
-	log.Infof("qAlias=%s", qAlias)
+	log.Infof("qGroup=%s, qAlias=%s", qGroup, qAlias)
+
+	if len(qGroup) == 0 {
+		return c.Status(fiber.StatusBadRequest).SendString("group is a required argument")
+	}
+
 	var aliases []*domain.Alias
 	if qAlias == "" {
 		aliases = s.aliasRepository.List()
 	} else {
-		aliases = s.aliasRepository.ListByAlias(qAlias)
+		aliases = s.aliasRepository.ListByGroup(qAlias)
 	}
 
 	if 1 < len(aliases) {

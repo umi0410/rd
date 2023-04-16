@@ -16,7 +16,7 @@ var (
 	redirectionCount = promauto.NewCounterVec(promCli.CounterOpts{
 		Name: "rd_redirection_count",
 		Help: "The total number of redirections.",
-	}, []string{"alias", "destination"})
+	}, []string{"group", "alias", "destination"})
 )
 
 func NewServer(aliasDescriptorRepository service.AliasRepository) (*Server, error) {

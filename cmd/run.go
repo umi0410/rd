@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,14 +17,19 @@ package cmd
 
 import (
 	"fmt"
-
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"rd/config"
 	"rd/metric"
 	"rd/repository"
-	"rd/repository/store"
+	//"rd/repository/store"
 	"rd/server"
+)
+
+var (
+	host *string
+	port *string
 )
 
 // runCmd represents the run command
@@ -35,32 +40,35 @@ var runCmd = &cobra.Command{
 search engine list of your web browser.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("run called")
+		repoCfg := config.Cfg.Repository
+		repo, err := repository.NewNatsRepository(repository.NatsRepositoryConfig{
+			Host:     repoCfg.Nats.Host,
+			Port:     repoCfg.Nats.Port,
+			Username: repoCfg.Nats.Username,
+			Password: repoCfg.Nats.Password,
+			Bucket:   repoCfg.Nats.Bucket,
+		})
+		if err != nil {
+			log.Panicf("%+v", errors.WithStack(err))
+		}
+
+		srv, err := server.NewServer(repo)
+		if err != nil {
+			log.Errorf("%+v", err)
+		}
+
+		go metric.Run()
+
+		if err := srv.Run(*host, *port); err != nil {
+			log.Errorf("%+v", err)
+		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(runCmd)
 
-	host := runCmd.Flags().StringP("host", "h", "0.0.0.0", "Host to listen")
-	port := runCmd.Flags().StringP("port", "p", "18081", "Port to listen")
-
-	st, err := store.NewLocalStore()
-	if err != nil {
-		log.Fatalf("%+v", errors.WithStack(err))
-	}
-
-	aliasRepository := &repository.LocalAliasRepository{
-		Store: st,
-	}
-
-	s, err := server.NewServer(aliasRepository)
-	if err != nil {
-		log.Errorf("%+v", err)
-	}
-
-	go metric.Run()
-
-	if err := s.Run(*host, *port); err != nil {
-		log.Errorf("%+v", err)
-	}
+	// XXX: shorthand h is already defined for help command.
+	host = runCmd.Flags().StringP("host", "", "0.0.0.0", "Host to listen")
+	port = runCmd.Flags().StringP("port", "p", "18081", "Port to listen")
 }
