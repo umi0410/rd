@@ -2,6 +2,8 @@ package server
 
 import (
 	"fmt"
+
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/favicon"
 
 	"github.com/gofiber/fiber/v2"
@@ -26,6 +28,10 @@ func NewServer(aliasDescriptorRepository service.AliasRepository) (*Server, erro
 	}
 
 	app = fiber.New()
+	// Or extend your config for customization
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+	}))
 	app.Use(favicon.New(favicon.Config{
 		File: "./assets/favicon.ico",
 	}))
