@@ -4,5 +4,5 @@ repository:
     host: example.com
     port: 4222
     username: foo
-    password: Bcrypted bar
-    bucket: rd-aliases
+    password: plainpassword-like-bar
+    bucket: something
