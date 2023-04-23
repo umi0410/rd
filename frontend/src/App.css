@@ -1,7 +1,8 @@
 #root {
   max-width: 1280px;
+  min-width: 600px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: .5rem;
   text-align: center;
 }
 
@@ -39,4 +40,16 @@
 
 .read-the-docs {
   color: #888;
+}
+
+/* table {width: 100%;} */
+td
+{
+ max-width: 200px;
+ overflow: hidden;
+ white-space: nowrap;
+}
+td > p {
+  text-overflow: ellipsis;
+  overflow: hidden;
 }

@@ -9,8 +9,11 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Link from '@mui/material/Link';
+import Grid from'@mui/material/Grid'
+import Box from'@mui/material/Box'
 
-export default function BasicTable() {
+export default function AliasTable(props) {
+  const {isDetailed} = props;
   const [aliases, setAliases] = useState([])
 
   // Option 1) To use a async function
@@ -27,6 +30,7 @@ export default function BasicTable() {
     const fetchData = async () => {
       const result = await fetch("http://localhost:18080/aliases")
       const data = await result.json()
+
       setAliases(data)
     }
     fetchData()
@@ -40,27 +44,38 @@ export default function BasicTable() {
   // }, []);
 
   return (
-    <TableContainer component={Paper}>
-      <Table sx={{ width: "1024px" }} aria-label="simple table">
+    <Box component={Paper}>
+      <Table style={{minWidth: '200px'}} aria-label="simple table">
         <TableHead>
-          <TableRow>
-            <TableCell align="center"><Typography>Group</Typography></TableCell>
-            <TableCell align="center"><Typography>Alias</Typography> Name</TableCell>
+          <TableRow >
+            {isDetailed &&
+              <TableCell align="center"><Typography>Group</Typography></TableCell>
+            }
+
+            <TableCell align="center" style={{width: '20%'}}><Typography>Alias</Typography></TableCell>
             <TableCell align="center"><Typography>Destination</Typography></TableCell>
-            <TableCell align="center"><Typography>Description</Typography></TableCell>
+            {isDetailed &&
+              <TableCell align="center"><Typography>Description</Typography></TableCell>
+            }            
           </TableRow>
         </TableHead>
         <TableBody>
+
         {aliases.map((alias, i) => (
           <TableRow key={i}>
-            <TableCell sx={{color: 'text.secondary'}} align="center"><Typography>{alias.group}</Typography></TableCell>
-            <TableCell><Typography>{alias.name}</Typography></TableCell>
+            {isDetailed &&
+              <TableCell sx={{color: 'text.secondary'}} align="center"><Typography>{alias.group}</Typography></TableCell>
+            }
+            
+            <TableCell style={{width: '20%'}}><Typography>{alias.name}</Typography></TableCell>
             <TableCell><Typography><Link href={alias.destination}>{alias.destination}</Link></Typography></TableCell>
-            <TableCell><Typography>{alias.description}</Typography></TableCell>
+            {isDetailed &&
+              <TableCell><Typography>{alias.description}</Typography></TableCell>
+            }            
           </TableRow>
         ))} 
         </TableBody>
       </Table>
-    </TableContainer>
+    </Box>
   );
 }

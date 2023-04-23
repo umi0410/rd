@@ -13,6 +13,11 @@
   },
   "permissions": [
     "storage",
-    "http://localhost:18080/"
-  ]
+    "http://localhost:18080/",
+    "tabs"
+  ], 
+  "action": {
+    "default_popup": "index.html",
+    "default_icon": "images/icon-32.png"
+  }
 }
