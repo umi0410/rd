@@ -36,12 +36,35 @@ const useStyles = makeStyles((theme) => ({
 
 export default function AddAlias() {
   const classes = useStyles();
-  
+
   const [formData, setFormData] = useState({
     group: 'default',
     name: '',
-    destination: window.location.toString(),
+    destination: '',
     description: '',
+  });
+
+  useEffect(() => {
+    
+      
+    if (chrome.tabs != undefined ){
+      chrome.tabs.query({
+        active: true,
+        currentWindow: true })
+        .then(tabs => {
+          const defaultDestination = tabs[0].url
+          setFormData( {
+            ...formData,
+            destination: defaultDestination
+          });
+      })
+    } else {
+      const defaultDestination = 'http://localhost/foo/bar';
+      setFormData( {
+        ...formData,
+        destination: defaultDestination
+      });
+    }
   });
 
   const handleChange = (event) => {
