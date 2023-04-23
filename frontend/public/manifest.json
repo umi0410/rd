@@ -8,9 +8,6 @@
     "48": "images/icon-48.png",
     "128": "images/icon-128.png"
   },
-  "chrome_url_overrides": {
-      "newtab": "index.html"
-  },
   "permissions": [
     "storage",
     "http://localhost:18080/",
