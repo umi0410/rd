@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
@@ -123,6 +124,48 @@ func (repo *NatsRepository) watch() error {
 	}
 
 	return err
+}
+
+var (
+	ErrRequiredFieldEmpty = errors.New("A required field is empty")
+	ErrDuplicatedEntity   = errors.New("A duplicated entity already exists")
+)
+
+func (repo *NatsRepository) Create(alias *domain.Alias) (*domain.Alias, error) {
+	// Validates
+	if len(alias.Group) == 0 {
+		return nil, errors.WithMessage(ErrRequiredFieldEmpty, "Group field")
+	}
+
+	if len(alias.Name) == 0 {
+		return nil, errors.WithMessage(ErrRequiredFieldEmpty, "Name field")
+	}
+
+	for _, existing := range repo.aliases[alias.Group] {
+		if alias.Name == existing.Name {
+			return nil, errors.WithMessage(ErrDuplicatedEntity, existing.Destination)
+		}
+	}
+
+	// TODO: The performance to prepend sucks.
+	repo.aliases[alias.Group] = append([]*domain.Alias{alias}, repo.aliases[alias.Group]...)
+	data, err := yaml.Marshal(repo.aliases[alias.Group])
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	reader := bytes.NewReader(data)
+
+	objInfo, err := repo.objStore.Put(&nats.ObjectMeta{
+		Name: fmt.Sprintf("%s.yaml", alias.Group),
+	}, reader)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	log.Infof("%+v", objInfo)
+
+	return alias, nil
 }
 
 // List all aliases without filtering by Group

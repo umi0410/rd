@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/gofiber/fiber/v2"
 	log "github.com/sirupsen/logrus"
@@ -60,6 +61,20 @@ func (s *Server) GoTo(c *fiber.Ctx) error {
 
 	// Not Found일 때는 google search
 	return c.Redirect(fmt.Sprintf(defaultSearchURLFormat, qAlias), fiber.StatusSeeOther)
+}
+
+func (s *Server) CreateAlias(c *fiber.Ctx) error {
+	inputAlias := new(domain.Alias)
+	if err := c.BodyParser(inputAlias); err != nil {
+		return c.Status(http.StatusBadRequest).SendString(err.Error())
+	}
+
+	alias, err := s.aliasRepository.Create(inputAlias)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).SendString(err.Error())
+	}
+
+	return c.JSON(alias)
 }
 
 func (s *Server) ListAliases(c *fiber.Ctx) error {

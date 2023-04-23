@@ -37,6 +37,7 @@ func NewServer(aliasDescriptorRepository service.AliasRepository) (*Server, erro
 	}))
 
 	app.Get("/goto", s.GoTo)
+	app.Post("/aliases", s.CreateAlias)
 	app.Get("/aliases", s.ListAliases)
 
 	return s, nil

@@ -28,3 +28,5 @@ assets/*
 config/*
 !config/default.yaml
 !config/config.go
+
+frontend
