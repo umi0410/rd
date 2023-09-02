@@ -16,13 +16,9 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"rd/config"
 	"rd/metric"
-	"rd/repository"
 	//"rd/repository/store"
 	"rd/server"
 )
@@ -39,18 +35,7 @@ var runCmd = &cobra.Command{
 	Long: `run rd server. You are recommended to add the server to the 
 search engine list of your web browser.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("run called")
-		repoCfg := config.Cfg.Repository
-		repo, err := repository.NewNatsRepository(repository.NatsRepositoryConfig{
-			Host:     repoCfg.Nats.Host,
-			Port:     repoCfg.Nats.Port,
-			Username: repoCfg.Nats.Username,
-			Password: repoCfg.Nats.Password,
-			Bucket:   repoCfg.Nats.Bucket,
-		})
-		if err != nil {
-			log.Panicf("%+v", errors.WithStack(err))
-		}
+		repo := initialize()
 
 		srv, err := server.NewServer(repo)
 		if err != nil {

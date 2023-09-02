@@ -3,14 +3,16 @@ package repository
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"strconv"
+	"strings"
+
 	"github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-	"io"
 	"rd/domain"
-	"strconv"
-	"strings"
+	"rd/service"
 )
 
 type NatsRepository struct {
@@ -28,7 +30,7 @@ type NatsRepositoryConfig struct {
 	Bucket   string
 }
 
-func NewNatsRepository(config NatsRepositoryConfig) (*NatsRepository, error) {
+func NewNatsRepository(config NatsRepositoryConfig) (service.AliasRepository, error) {
 	aliases := map[string][]*domain.Alias{}
 	conn, err := nats.Connect(fmt.Sprintf("nats://%s:%s", config.Host, strconv.Itoa(config.Port)),
 		nats.UserInfo(config.Username, config.Password))
@@ -45,6 +47,14 @@ func NewNatsRepository(config NatsRepositoryConfig) (*NatsRepository, error) {
 	if err != nil {
 		if errors.Is(err, nats.ErrStreamNotFound) {
 			log.Warnf("Try creating a new bucket name of which is %s", config.Bucket)
+			objStore, err = jet.CreateObjectStore(&nats.ObjectStoreConfig{
+				Bucket:      config.Bucket,
+				Description: "automatically created bucket",
+			})
+			if err != nil {
+				log.Errorf("Failed to create a new bucket \"%s\"", config.Bucket)
+				return nil, errors.WithStack(err)
+			}
 		}
 		return nil, errors.WithStack(err)
 	}
@@ -127,8 +137,8 @@ func (repo *NatsRepository) watch() error {
 }
 
 var (
-	ErrRequiredFieldEmpty = errors.New("A required field is empty")
-	ErrDuplicatedEntity   = errors.New("A duplicated entity already exists")
+	ErrRequiredFieldEmpty = fmt.Errorf("A required field is empty")
+	ErrDuplicatedEntity   = fmt.Errorf("A duplicated entity already exists")
 )
 
 func (repo *NatsRepository) Create(alias *domain.Alias) (*domain.Alias, error) {
