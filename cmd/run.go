@@ -16,6 +16,10 @@ limitations under the License.
 package cmd
 
 import (
+	"os"
+	"os/signal"
+	"syscall"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"rd/metric"
@@ -36,7 +40,6 @@ var runCmd = &cobra.Command{
 search engine list of your web browser.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		repo := initialize()
-
 		srv, err := server.NewServer(repo)
 		if err != nil {
 			log.Errorf("%+v", err)
@@ -44,6 +47,22 @@ search engine list of your web browser.`,
 
 		go metric.Run()
 
+		sigc := make(chan os.Signal, 1)
+		signal.Notify(sigc,
+			syscall.SIGHUP,
+			syscall.SIGINT,
+			syscall.SIGTERM,
+			syscall.SIGQUIT)
+		go func() {
+			s := <-sigc
+			log.Infof("Got SIGNAL, %s", s)
+			err := repo.Close()
+			if err != nil {
+				log.Panicf("%+v", err)
+			}
+			os.Exit(0)
+		}()
+		// TODO: Shutdown webserver gracefully
 		if err := srv.Run(*host, *port); err != nil {
 			log.Errorf("%+v", err)
 		}

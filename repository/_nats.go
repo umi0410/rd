@@ -12,7 +12,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"rd/domain"
-	"rd/service"
 )
 
 type NatsRepository struct {
@@ -30,7 +29,7 @@ type NatsRepositoryConfig struct {
 	Bucket   string
 }
 
-func NewNatsRepository(config NatsRepositoryConfig) (service.AliasRepository, error) {
+func NewNatsRepository(config NatsRepositoryConfig) (AliasRepository, error) {
 	aliases := map[string][]*domain.Alias{}
 	conn, err := nats.Connect(fmt.Sprintf("nats://%s:%s", config.Host, strconv.Itoa(config.Port)),
 		nats.UserInfo(config.Username, config.Password))
@@ -124,7 +123,7 @@ func (repo *NatsRepository) watch() error {
 		}
 
 		for _, a := range aliases {
-			a.Group = group
+			a.AliasGroup = group
 		}
 
 		repo.aliases[group] = aliases
@@ -143,23 +142,23 @@ var (
 
 func (repo *NatsRepository) Create(alias *domain.Alias) (*domain.Alias, error) {
 	// Validates
-	if len(alias.Group) == 0 {
-		return nil, errors.WithMessage(ErrRequiredFieldEmpty, "Group field")
+	if len(alias.AliasGroup) == 0 {
+		return nil, errors.WithMessage(ErrRequiredFieldEmpty, "AliasGroup field")
 	}
 
 	if len(alias.Name) == 0 {
 		return nil, errors.WithMessage(ErrRequiredFieldEmpty, "Name field")
 	}
 
-	for _, existing := range repo.aliases[alias.Group] {
+	for _, existing := range repo.aliases[alias.AliasGroup] {
 		if alias.Name == existing.Name {
 			return nil, errors.WithMessage(ErrDuplicatedEntity, existing.Destination)
 		}
 	}
 
 	// TODO: The performance to prepend sucks.
-	repo.aliases[alias.Group] = append([]*domain.Alias{alias}, repo.aliases[alias.Group]...)
-	data, err := yaml.Marshal(repo.aliases[alias.Group])
+	repo.aliases[alias.AliasGroup] = append([]*domain.Alias{alias}, repo.aliases[alias.AliasGroup]...)
+	data, err := yaml.Marshal(repo.aliases[alias.AliasGroup])
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -167,7 +166,7 @@ func (repo *NatsRepository) Create(alias *domain.Alias) (*domain.Alias, error) {
 	reader := bytes.NewReader(data)
 
 	objInfo, err := repo.objStore.Put(&nats.ObjectMeta{
-		Name: fmt.Sprintf("%s.yaml", alias.Group),
+		Name: fmt.Sprintf("%s.yaml", alias.AliasGroup),
 	}, reader)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -178,7 +177,7 @@ func (repo *NatsRepository) Create(alias *domain.Alias) (*domain.Alias, error) {
 	return alias, nil
 }
 
-// List all aliases without filtering by Group
+// List all aliases without filtering by AliasGroup
 func (repo *NatsRepository) List() []*domain.Alias {
 	ret := make([]*domain.Alias, 0)
 	for _, aliases := range repo.aliases {
@@ -188,7 +187,7 @@ func (repo *NatsRepository) List() []*domain.Alias {
 	return ret
 }
 
-// ListByGroup aliases which are only correspondent to the specific Group
+// ListByGroup aliases which are only correspondent to the specific AliasGroup
 func (repo *NatsRepository) ListByGroup(group string) []*domain.Alias {
 	ret, ok := repo.aliases[group]
 	if !ok {
@@ -199,7 +198,7 @@ func (repo *NatsRepository) ListByGroup(group string) []*domain.Alias {
 	return ret
 }
 
-// ListByGroupAndAlias aliases which are only correspondent to the specific Group and Alias
+// ListByGroupAndAlias aliases which are only correspondent to the specific AliasGroup and Alias
 func (repo *NatsRepository) ListByGroupAndAlias(group, alias string) []*domain.Alias {
 	aliases, ok := repo.aliases[group]
 	if !ok {

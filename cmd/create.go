@@ -19,7 +19,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"rd/domain"
+	"rd/entity"
 )
 
 var (
@@ -41,15 +41,15 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			repo := initialize()
-			alias, err := repo.Create(&domain.Alias{
-				Group:       group,
+			alias, err := repo.Create(&entity.Alias{
+				AliasGroup:  group,
 				Name:        name,
 				Destination: destination,
 			})
 			if err != nil {
 				log.Panicf("%+v", err)
 			}
-			log.Infof("alias \"%s/%s\" has been create.", alias.Group, alias.Name)
+			log.Infof("alias \"%s/%s\" has been create.", alias.AliasGroup, alias.Name)
 		},
 	}
 )

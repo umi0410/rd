@@ -5,13 +5,13 @@ import (
 
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/favicon"
+	"rd/repository"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/pkg/errors"
 	promCli "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
-	"rd/service"
 )
 
 var (
@@ -22,7 +22,7 @@ var (
 	}, []string{"group", "alias", "destination"})
 )
 
-func NewServer(aliasDescriptorRepository service.AliasRepository) (*Server, error) {
+func NewServer(aliasDescriptorRepository repository.AliasRepository) (*Server, error) {
 	s := &Server{
 		aliasRepository: aliasDescriptorRepository,
 	}
@@ -44,7 +44,7 @@ func NewServer(aliasDescriptorRepository service.AliasRepository) (*Server, erro
 }
 
 type Server struct {
-	aliasRepository service.AliasRepository
+	aliasRepository repository.AliasRepository
 }
 
 func (s *Server) Run(host, port string) error {

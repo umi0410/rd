@@ -1,17 +1,21 @@
 package config
 
 import (
+	"os"
+
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"os"
 )
 
 var Cfg *Config
 
 type Config struct {
 	Repository struct {
-		Kind string
+		Kind         RepositoryKind
+		SqliteMemory struct {
+			Dsn string
+		}
 		Nats struct {
 			Host     string
 			Port     int
@@ -21,6 +25,14 @@ type Config struct {
 		}
 	}
 }
+
+type RepositoryKind string
+
+const (
+	RepoKindSqlite       RepositoryKind = "sqlite"
+	RepoKindSqliteMemory RepositoryKind = "sqliteMemory"
+	RepositoryKindNats   RepositoryKind = "nats"
+)
 
 func Load() error {
 	vp := viper.New()

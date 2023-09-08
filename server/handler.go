@@ -6,7 +6,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	log "github.com/sirupsen/logrus"
-	"rd/domain"
+	"rd/entity"
+	"rd/mapper"
 )
 
 var (
@@ -40,15 +41,16 @@ func (s *Server) GoTo(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("group is a required argument")
 	}
 
-	var aliases []*domain.Alias
+	var aliasEntities []*entity.Alias
 	if len(qGroup) != 0 && len(qAlias) != 0 {
-		aliases = s.aliasRepository.ListByGroupAndAlias(qGroup, qAlias)
+		aliasEntities = s.aliasRepository.ListByGroupAndAlias(qGroup, qAlias)
 	} else if qAlias == "" {
-		aliases = s.aliasRepository.ListByGroup(qGroup)
+		aliasEntities = s.aliasRepository.ListByGroup(qGroup)
 	} else {
-		aliases = s.aliasRepository.List()
+		aliasEntities = s.aliasRepository.List()
 	}
 
+	aliases := mapper.AliasesFromEntityToDomain(aliasEntities)
 	if 1 < len(aliases) {
 		return c.JSON(aliases)
 	}
@@ -64,7 +66,7 @@ func (s *Server) GoTo(c *fiber.Ctx) error {
 }
 
 func (s *Server) CreateAlias(c *fiber.Ctx) error {
-	inputAlias := new(domain.Alias)
+	inputAlias := new(entity.Alias)
 	if err := c.BodyParser(inputAlias); err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
@@ -78,5 +80,5 @@ func (s *Server) CreateAlias(c *fiber.Ctx) error {
 }
 
 func (s *Server) ListAliases(c *fiber.Ctx) error {
-	return c.JSON(s.aliasRepository.List())
+	return c.JSON(mapper.AliasesFromEntityToDomain(s.aliasRepository.List()))
 }
