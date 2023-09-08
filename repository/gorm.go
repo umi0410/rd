@@ -3,17 +3,20 @@ package repository
 import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"gorm.io/driver/mysql"
+	"rd/config"
+
 	//"gorm.io/driver/mysql"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 	"rd/entity"
 )
 
-type SqlLiteRepository struct {
+type GormRepository struct {
 	cli *gorm.DB
 }
 
-func (r *SqlLiteRepository) Create(alias *entity.Alias) (*entity.Alias, error) {
+func (r *GormRepository) Create(alias *entity.Alias) (*entity.Alias, error) {
 	res := r.cli.Create(alias)
 	if res.Error != nil {
 		return nil, errors.WithStack(res.Error)
@@ -22,7 +25,7 @@ func (r *SqlLiteRepository) Create(alias *entity.Alias) (*entity.Alias, error) {
 	return alias, nil
 }
 
-func (r *SqlLiteRepository) List() []*entity.Alias {
+func (r *GormRepository) List() []*entity.Alias {
 	aliases := make([]*entity.Alias, 0, 32)
 	res := r.cli.Find(&aliases)
 	if res.Error != nil {
@@ -33,7 +36,7 @@ func (r *SqlLiteRepository) List() []*entity.Alias {
 	return aliases
 }
 
-func (r *SqlLiteRepository) ListByGroup(group string) []*entity.Alias {
+func (r *GormRepository) ListByGroup(group string) []*entity.Alias {
 	aliases := make([]*entity.Alias, 0, 32)
 	res := r.cli.Where("alias_group = ?", group).Find(aliases)
 	if res.Error != nil {
@@ -44,7 +47,7 @@ func (r *SqlLiteRepository) ListByGroup(group string) []*entity.Alias {
 	return aliases
 }
 
-func (r *SqlLiteRepository) ListByGroupAndAlias(group, alias string) []*entity.Alias {
+func (r *GormRepository) ListByGroupAndAlias(group, alias string) []*entity.Alias {
 	aliases := make([]*entity.Alias, 0, 32)
 	res := r.cli.Where("alias_group = ? AND name = ?", group, alias).Find(&aliases)
 	if res.Error != nil {
@@ -55,12 +58,12 @@ func (r *SqlLiteRepository) ListByGroupAndAlias(group, alias string) []*entity.A
 	return aliases
 }
 
-func (r *SqlLiteRepository) Delete() error {
+func (r *GormRepository) Delete() error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *SqlLiteRepository) Close() error {
+func (r *GormRepository) Close() error {
 	db, err := r.cli.DB()
 	if err != nil {
 		return errors.WithStack(err)
@@ -75,7 +78,7 @@ func (r *SqlLiteRepository) Close() error {
 }
 
 //
-//func (r *SqlLiteRepository) ListByAlias(alias string) []*domain.Alias {
+//func (r *GormRepository) ListByAlias(alias string) []*domain.Alias {
 //	aliases := make([]*domain.Alias, 0, 32)
 //	res := r.cli.Where("name = ?", alias).Find(aliases)
 //	if res.Error != nil {
@@ -86,23 +89,35 @@ func (r *SqlLiteRepository) Close() error {
 //	return aliases
 //}
 //
-//func (*SqlLiteRepository) Reload() error {
+//func (*GormRepository) Reload() error {
 //	//TODO implement me
 //	panic("implement me")
 //}
 
 // dns: user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local
-func NewSqlLiteRepository(dsn string) (AliasRepository, error) {
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	if err != nil {
-		return nil, errors.WithStack(err)
+func NewGormRepository(kind config.RepositoryKind, dsn string) (AliasRepository, error) {
+	var (
+		db  *gorm.DB
+		err error
+	)
+	switch kind {
+	case config.RepoKindMysql:
+		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+	case config.RepoKindSqlite:
+		db, err = gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
 	}
 
 	if err := db.AutoMigrate(&entity.Alias{}, &entity.EventAliasHit{}); err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	repo, err := &SqlLiteRepository{
+	repo, err := &GormRepository{
 		cli: db,
 	}, nil
 	if err != nil {
@@ -114,7 +129,7 @@ func NewSqlLiteRepository(dsn string) (AliasRepository, error) {
 	return repo, nil
 }
 
-func (r *SqlLiteRepository) fixture() {
+func (r *GormRepository) fixture() {
 	for _, f := range []*entity.Alias{{
 		AliasGroup:  "james",
 		Name:        "naver",

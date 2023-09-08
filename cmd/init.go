@@ -11,8 +11,12 @@ func initialize() repository.AliasRepository {
 	var repo repository.AliasRepository
 	var err error
 	switch repoCfg.Kind {
-	case config.RepoKindSqliteMemory:
-		repo, err = repository.NewSqlLiteRepository(repoCfg.SqliteMemory.Dsn)
+	case config.RepoKindSqliteMemory, config.RepoKindMysql:
+		dsn := repoCfg.SqliteMemory.Dsn
+		if repoCfg.Kind == config.RepoKindMysql {
+			dsn = repoCfg.Mysql.Dsn
+		}
+		repo, err = repository.NewGormRepository(repoCfg.Kind, dsn)
 		if err != nil {
 			log.Panicf("%+v", err)
 		}

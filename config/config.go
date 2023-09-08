@@ -16,6 +16,9 @@ type Config struct {
 		SqliteMemory struct {
 			Dsn string
 		}
+		Mysql struct {
+			Dsn string
+		}
 		Nats struct {
 			Host     string
 			Port     int
@@ -31,6 +34,7 @@ type RepositoryKind string
 const (
 	RepoKindSqlite       RepositoryKind = "sqlite"
 	RepoKindSqliteMemory RepositoryKind = "sqliteMemory"
+	RepoKindMysql        RepositoryKind = "mysql"
 	RepositoryKindNats   RepositoryKind = "nats"
 )
 
