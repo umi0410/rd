@@ -58,9 +58,29 @@ func (r *GormRepository) ListByGroupAndAlias(group, alias string) []*entity.Alia
 	return aliases
 }
 
-func (r *GormRepository) Delete() error {
-	//TODO implement me
-	panic("implement me")
+func (r *GormRepository) Get(id int) (*entity.Alias, error) {
+	alias := &entity.Alias{}
+	res := r.cli.First(alias, id)
+	if res.Error != nil {
+		return nil, errors.WithStack(res.Error)
+	}
+
+	return alias, nil
+}
+
+func (r *GormRepository) Delete(id int) (*entity.Alias, error) {
+	alias := &entity.Alias{}
+	res := r.cli.First(alias, id)
+	if res.Error != nil {
+		return nil, errors.WithStack(res.Error)
+	}
+
+	res = r.cli.Delete(&entity.Alias{}, id)
+	if res.Error != nil {
+		return nil, errors.WithStack(res.Error)
+	}
+
+	return alias, nil
 }
 
 func (r *GormRepository) Close() error {
@@ -124,7 +144,11 @@ func NewGormRepository(kind config.RepositoryKind, dsn string) (AliasRepository,
 		return nil, errors.WithStack(err)
 	}
 
-	repo.fixture()
+	// XXX: when using sqlite memory, automatically
+	// add fixture data
+	if kind == config.RepoKindSqliteMemory {
+		repo.fixture()
+	}
 
 	return repo, nil
 }

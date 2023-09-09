@@ -39,8 +39,9 @@ var runCmd = &cobra.Command{
 	Long: `run rd server. You are recommended to add the server to the 
 search engine list of your web browser.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		repo := initialize()
-		srv, err := server.NewServer(repo)
+		aliasRepo, aliasSvc := initialize()
+
+		srv, err := server.NewServer(aliasRepo, aliasSvc)
 		if err != nil {
 			log.Errorf("%+v", err)
 		}

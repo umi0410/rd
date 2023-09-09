@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/favicon"
 	"rd/repository"
+	"rd/service"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/pkg/errors"
@@ -22,9 +23,10 @@ var (
 	}, []string{"group", "alias", "destination"})
 )
 
-func NewServer(aliasDescriptorRepository repository.AliasRepository) (*Server, error) {
+func NewServer(aliasRepo repository.AliasRepository, aliasSvc service.AliasService) (*Server, error) {
 	s := &Server{
-		aliasRepository: aliasDescriptorRepository,
+		aliasRepo: aliasRepo,
+		aliasSvc:  aliasSvc,
 	}
 
 	app = fiber.New()
@@ -44,7 +46,8 @@ func NewServer(aliasDescriptorRepository repository.AliasRepository) (*Server, e
 }
 
 type Server struct {
-	aliasRepository repository.AliasRepository
+	aliasRepo repository.AliasRepository
+	aliasSvc  service.AliasService
 }
 
 func (s *Server) Run(host, port string) error {

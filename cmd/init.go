@@ -4,11 +4,12 @@ import (
 	log "github.com/sirupsen/logrus"
 	"rd/config"
 	"rd/repository"
+	"rd/service"
 )
 
-func initialize() repository.AliasRepository {
+func initialize() (repository.AliasRepository, service.AliasService) {
 	repoCfg := config.Cfg.Repository
-	var repo repository.AliasRepository
+	var aliasRepo repository.AliasRepository
 	var err error
 	switch repoCfg.Kind {
 	case config.RepoKindSqliteMemory, config.RepoKindMysql:
@@ -16,7 +17,7 @@ func initialize() repository.AliasRepository {
 		if repoCfg.Kind == config.RepoKindMysql {
 			dsn = repoCfg.Mysql.Dsn
 		}
-		repo, err = repository.NewGormRepository(repoCfg.Kind, dsn)
+		aliasRepo, err = repository.NewGormRepository(repoCfg.Kind, dsn)
 		if err != nil {
 			log.Panicf("%+v", err)
 		}
@@ -36,5 +37,7 @@ func initialize() repository.AliasRepository {
 		log.Panicf("Unsupported repo kind")
 	}
 
-	return repo
+	aliasSvc := service.NewAliasService(aliasRepo)
+
+	return aliasRepo, aliasSvc
 }
