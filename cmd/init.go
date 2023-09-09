@@ -7,17 +7,21 @@ import (
 	"rd/service"
 )
 
-func initialize() (repository.AliasRepository, service.AliasService) {
+func initialize() (repository.AliasRepository, repository.EventAliasHitRepository, service.AliasService) {
 	repoCfg := config.Cfg.Repository
-	var aliasRepo repository.AliasRepository
-	var err error
+	var (
+		aliasRepo         repository.AliasRepository
+		eventAliasHitRepo repository.EventAliasHitRepository
+		aliasSvc          service.AliasService
+		err               error
+	)
 	switch repoCfg.Kind {
 	case config.RepoKindSqliteMemory, config.RepoKindMysql:
 		dsn := repoCfg.SqliteMemory.Dsn
 		if repoCfg.Kind == config.RepoKindMysql {
 			dsn = repoCfg.Mysql.Dsn
 		}
-		aliasRepo, err = repository.NewGormRepository(repoCfg.Kind, dsn)
+		aliasRepo, eventAliasHitRepo, err = repository.NewGormRepository(repoCfg.Kind, dsn)
 		if err != nil {
 			log.Panicf("%+v", err)
 		}
@@ -37,7 +41,7 @@ func initialize() (repository.AliasRepository, service.AliasService) {
 		log.Panicf("Unsupported repo kind")
 	}
 
-	aliasSvc := service.NewAliasService(aliasRepo)
+	aliasSvc = service.NewAliasService(aliasRepo, eventAliasHitRepo)
 
-	return aliasRepo, aliasSvc
+	return aliasRepo, eventAliasHitRepo, aliasSvc
 }

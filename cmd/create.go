@@ -40,8 +40,8 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			repo := initialize()
-			alias, err := repo.Create(&entity.Alias{
+			_, _, aliasSvc := initialize()
+			alias, err := aliasSvc.Create(&entity.Alias{
 				AliasGroup:  group,
 				Name:        name,
 				Destination: destination,

@@ -29,7 +29,7 @@ func AliasFromEntityToDomain(e *entity.Alias) *domain.Alias {
 		AliasGroup:      e.AliasGroup,
 		Name:            e.Name,
 		Destination:     e.Destination,
-		RecentHitCounts: nil,
+		RecentHitCounts: map[string]int{},
 		CreatedAt:       e.CreatedAt,
 		UpdatedAt:       e.UpdatedAt,
 		DeletedAt:       e.DeletedAt.Time,

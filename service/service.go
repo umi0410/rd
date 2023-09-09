@@ -2,8 +2,10 @@ package service
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"rd/domain"
 	"rd/entity"
 	"rd/mapper"
@@ -15,12 +17,14 @@ type AliasService interface {
 	List() ([]*domain.Alias, error)
 	ListByGroup(group string) ([]*domain.Alias, error)
 	ListByGroupAndAlias(group, alias string) ([]*domain.Alias, error)
+	GoTo(group, alias string) ([]*domain.Alias, error)
 	Update(*entity.Alias) (*domain.Alias, error)
 	Delete(id int) (*domain.Alias, error)
 }
 
 type AliasServiceImpl struct {
-	repo repository.AliasRepository
+	repo              repository.AliasRepository
+	eventAliasHitRepo repository.EventAliasHitRepository
 }
 
 var (
@@ -41,21 +45,60 @@ func (s AliasServiceImpl) Create(alias *entity.Alias) (*domain.Alias, error) {
 }
 
 func (s AliasServiceImpl) List() ([]*domain.Alias, error) {
-	aliases := s.repo.List()
+	aliasEntities := s.repo.List()
+	aliases := mapper.AliasesFromEntityToDomain(aliasEntities)
+	if err := s.setRecentHits(aliases); err != nil {
+		return nil, err
+	}
 
-	return mapper.AliasesFromEntityToDomain(aliases), nil
+	return aliases, nil
 }
 
 func (s AliasServiceImpl) ListByGroup(group string) ([]*domain.Alias, error) {
-	aliases := s.repo.ListByGroup(group)
+	aliasEntities := s.repo.ListByGroup(group)
+	aliases := mapper.AliasesFromEntityToDomain(aliasEntities)
+	if err := s.setRecentHits(aliases); err != nil {
+		return nil, err
+	}
 
-	return mapper.AliasesFromEntityToDomain(aliases), nil
+	return aliases, nil
 }
 
 func (s AliasServiceImpl) ListByGroupAndAlias(group, alias string) ([]*domain.Alias, error) {
-	aliases := s.repo.ListByGroupAndAlias(group, alias)
+	aliasEntities := s.repo.ListByGroupAndAlias(group, alias)
+	aliases := mapper.AliasesFromEntityToDomain(aliasEntities)
+	if err := s.setRecentHits(aliases); err != nil {
+		return nil, err
+	}
 
-	return mapper.AliasesFromEntityToDomain(aliases), nil
+	return aliases, nil
+}
+
+func (s AliasServiceImpl) GoTo(group, alias string) ([]*domain.Alias, error) {
+	aliasEntities := s.repo.ListByGroupAndAlias(group, alias)
+
+	aliases := mapper.AliasesFromEntityToDomain(aliasEntities)
+	if err := s.setRecentHits(aliases); err != nil {
+		return nil, err
+	}
+	hit := false
+	if len(aliases) >= 1 {
+		hit = true
+	}
+	for _, a := range aliases {
+		evt, err := s.eventAliasHitRepo.Create(&entity.EventAliasHit{
+			Hit:     hit,
+			AliasFK: a.ID,
+			User:    "",
+		})
+		if err != nil {
+			log.Errorf("%+v", errors.WithStack(err))
+		} else {
+			log.Infof("Created an EventAliasHit(%+v)", evt)
+		}
+	}
+
+	return aliases, nil
 }
 
 func (s AliasServiceImpl) Update(*entity.Alias) (*domain.Alias, error) {
@@ -63,16 +106,39 @@ func (s AliasServiceImpl) Update(*entity.Alias) (*domain.Alias, error) {
 }
 
 func (s AliasServiceImpl) Delete(id int) (*domain.Alias, error) {
-	alias, err := s.repo.Delete(id)
+	aliasEntity, err := s.repo.Delete(id)
 	if err != nil {
 		return nil, err
 	}
 
-	return mapper.AliasFromEntityToDomain(alias), nil
+	alias := mapper.AliasFromEntityToDomain(aliasEntity)
+	if err := s.setRecentHits([]*domain.Alias{alias}); err != nil {
+		return nil, err
+	}
+
+	return alias, nil
 }
 
-func NewAliasService(repo repository.AliasRepository) AliasService {
+func NewAliasService(repo repository.AliasRepository, eventAliasHitRepo repository.EventAliasHitRepository) AliasService {
 	return &AliasServiceImpl{
-		repo: repo,
+		repo:              repo,
+		eventAliasHitRepo: eventAliasHitRepo,
 	}
+}
+
+func (s AliasServiceImpl) setRecentHits(aliases []*domain.Alias) error {
+	var (
+		//aliasIds       []uint
+		recentDuration     = time.Hour * 24 * 14 // 2 Weeks
+		recentDurationName = "Recent 2 Weeks"
+	)
+	after := time.Now().Add(-recentDuration)
+	// TODO: Too many DB requests. Introduce batch queries.
+	for _, a := range aliases {
+		//aliasIds = append(aliasIds, a.ID)
+		events := s.eventAliasHitRepo.ListByAliasIdsAndGreaterThanCreatedAt([]uint{a.ID}, after)
+		a.RecentHitCounts[recentDurationName] = len(events)
+	}
+
+	return nil
 }

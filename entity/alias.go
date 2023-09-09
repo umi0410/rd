@@ -13,7 +13,7 @@ type Alias struct {
 type EventAliasHit struct {
 	gorm.Model
 	Hit     bool `json:"hit"`
-	AliasFK int  `json:"alias_fk"`
+	AliasFK uint `json:"alias_fk"`
 	//Alias *Alias `json:"alias"`
 	// TODO: To implement a user system.
 	// The type of User is just string for right now.
