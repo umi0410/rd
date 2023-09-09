@@ -9,6 +9,9 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Link from '@mui/material/Link';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import DeleteIcon from '@mui/icons-material/Delete';
 import Grid from'@mui/material/Grid'
 import Box from'@mui/material/Box'
 
@@ -16,33 +19,29 @@ export default function AliasTable(props) {
   const {isDetailed} = props;
   const [aliases, setAliases] = useState([])
 
-  // Option 1) To use a async function
-  useEffect(()=>{
-    const numOfSkeletonRows = 32;
-    
-    // XXX: useEffect is invoked only once
-    // and it seems like the same is applied to setAliases().
-    // setAliases([...Array(numOfSkeletonRows)].forEach((_, i) => ({
-    //   group: "",
-    //   name: "",
-    //   destination: ""
-    // })))
-    const fetchData = async () => {
+  const fetchData = async () => {
       const result = await fetch("http://localhost:18080/aliases")
       const data = await result.json()
 
       setAliases(data)
     }
+
+  useEffect(()=>{
+    const numOfSkeletonRows = 32;
     fetchData()
   }, []);
 
-  // Option 2) To use then method
-  // useEffect(()=>{
-  //   fetch("http://localhost:18080/aliases")
-  //   .then(res => res.json())
-  //   .then(data => setAliases(data))
-  // }, []);
-
+  const deleteAlias = async (id) =>{
+    const result = await fetch("http://localhost:18080/aliases",
+        {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: id
+        })
+    })
+    await fetchData()
+  }
   return (
     <Box component={Paper}>
       <Table style={{minWidth: '200px'}} aria-label="simple table">
@@ -56,7 +55,8 @@ export default function AliasTable(props) {
             <TableCell align="center"><Typography>Destination</Typography></TableCell>
             {isDetailed &&
               <TableCell align="center"><Typography>Description</Typography></TableCell>
-            }            
+            }
+            <TableCell align="center"><Typography>Actions</Typography></TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -71,7 +71,8 @@ export default function AliasTable(props) {
             <TableCell><Typography><Link href={alias.destination}>{alias.destination}</Link></Typography></TableCell>
             {isDetailed &&
               <TableCell><Typography>{alias.description}</Typography></TableCell>
-            }            
+            }
+            <TableCell><IconButton aria-label="delete"  variant="outlined" onClick={e=>{deleteAlias(alias.id)}}> <DeleteIcon fontSize="small" /> </IconButton></TableCell>
           </TableRow>
         ))} 
         </TableBody>
