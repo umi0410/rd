@@ -56,6 +56,7 @@ export default function AliasTable(props) {
             {isDetailed &&
               <TableCell align="center"><Typography>Description</Typography></TableCell>
             }
+            <TableCell align="center"><Typography>Recent Hits</Typography></TableCell>
             <TableCell align="center"><Typography>Actions</Typography></TableCell>
           </TableRow>
         </TableHead>
@@ -72,6 +73,7 @@ export default function AliasTable(props) {
             {isDetailed &&
               <TableCell><Typography>{alias.description}</Typography></TableCell>
             }
+            <TableCell><Typography>{isNaN(alias.recent_hit_counts["Recent 2 Weeks"]) ? "NaN" : alias.recent_hit_counts["Recent 2 Weeks"]}</Typography></TableCell>
             <TableCell><IconButton aria-label="delete"  variant="outlined" onClick={e=>{deleteAlias(alias.id)}}> <DeleteIcon fontSize="small" /> </IconButton></TableCell>
           </TableRow>
         ))} 

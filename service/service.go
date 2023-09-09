@@ -15,6 +15,9 @@ import (
 type AliasService interface {
 	Create(*entity.Alias) (*domain.Alias, error)
 	List() ([]*domain.Alias, error)
+	// 최근 X time.Duration 동안의 hit count table을 sum한 값을 내림차순으로 정렬한
+	// alias row들을 N개 조회하라.
+	// SELECT
 	ListByGroup(group string) ([]*domain.Alias, error)
 	ListByGroupAndAlias(group, alias string) ([]*domain.Alias, error)
 	GoTo(group, alias string) ([]*domain.Alias, error)
@@ -55,6 +58,10 @@ func (s AliasServiceImpl) List() ([]*domain.Alias, error) {
 }
 
 func (s AliasServiceImpl) ListByGroup(group string) ([]*domain.Alias, error) {
+	if group == "" {
+		return s.List()
+	}
+
 	aliasEntities := s.repo.ListByGroup(group)
 	aliases := mapper.AliasesFromEntityToDomain(aliasEntities)
 	if err := s.setRecentHits(aliases); err != nil {
@@ -65,6 +72,10 @@ func (s AliasServiceImpl) ListByGroup(group string) ([]*domain.Alias, error) {
 }
 
 func (s AliasServiceImpl) ListByGroupAndAlias(group, alias string) ([]*domain.Alias, error) {
+	if group == "" && alias == "" {
+		return s.List()
+	}
+
 	aliasEntities := s.repo.ListByGroupAndAlias(group, alias)
 	aliases := mapper.AliasesFromEntityToDomain(aliasEntities)
 	if err := s.setRecentHits(aliases); err != nil {
