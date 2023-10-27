@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"rd/domain"
 	"rd/entity"
+	"rd/service"
 )
 
 var (
@@ -77,15 +78,20 @@ func (s *Server) CreateAlias(c *fiber.Ctx) error {
 func (s *Server) ListAliases(c *fiber.Ctx) error {
 	qGroup := c.Query("group")
 	qAlias := c.Query("alias")
+	qSort := service.Sort(c.Query("sort"))
+	if err := qSort.Validate(); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(err)
+	}
 
 	var (
 		aliases []*domain.Alias
 		err     error
 	)
+
 	if len(qGroup) != 0 && len(qAlias) != 0 {
-		aliases, err = s.aliasSvc.ListByGroupAndAlias(qGroup, qAlias)
+		aliases, err = s.aliasSvc.ListByGroupAndAlias(qGroup, qAlias, qSort)
 	} else if qAlias == "" {
-		aliases, err = s.aliasSvc.ListByGroup(qGroup)
+		aliases, err = s.aliasSvc.ListByGroup(qGroup, qSort)
 	} else {
 		aliases, err = s.aliasSvc.List()
 	}

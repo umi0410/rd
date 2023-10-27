@@ -18,8 +18,8 @@ type AliasService interface {
 	// 최근 X time.Duration 동안의 hit count table을 sum한 값을 내림차순으로 정렬한
 	// alias row들을 N개 조회하라.
 	// SELECT
-	ListByGroup(group string) ([]*domain.Alias, error)
-	ListByGroupAndAlias(group, alias string) ([]*domain.Alias, error)
+	ListByGroup(group string, sort Sort) ([]*domain.Alias, error)
+	ListByGroupAndAlias(group, alias string, sort Sort) ([]*domain.Alias, error)
 	GoTo(group, alias string) ([]*domain.Alias, error)
 	Update(*entity.Alias) (*domain.Alias, error)
 	Delete(id int) (*domain.Alias, error)
@@ -30,12 +30,28 @@ type AliasServiceImpl struct {
 	eventAliasHitRepo repository.EventAliasHitRepository
 }
 
+type Sort string
+
+var (
+	SortByDefault         Sort = ""
+	SortByRecentHitCounts Sort = "recent_hit_counts_desc"
+)
+
+func (s *Sort) Validate() error {
+	for _, sort := range []Sort{SortByDefault, SortByRecentHitCounts} {
+		if *s == sort {
+			return nil
+		}
+	}
+	return errors.New("unknown sort")
+}
+
 var (
 	ErrDuplicatedAlias = fmt.Errorf("duplicated aliases already exist")
 )
 
 func (s AliasServiceImpl) Create(alias *entity.Alias) (*domain.Alias, error) {
-	if len(s.repo.ListByGroupAndAlias(alias.AliasGroup, alias.Name)) != 0 {
+	if len(s.repo.ListByGroupAndAlias(alias.AliasGroup, alias.Name, time.Now().Add(-time.Hour*24*7))) != 0 {
 		return nil, errors.WithStack(ErrDuplicatedAlias)
 	}
 
@@ -57,12 +73,12 @@ func (s AliasServiceImpl) List() ([]*domain.Alias, error) {
 	return aliases, nil
 }
 
-func (s AliasServiceImpl) ListByGroup(group string) ([]*domain.Alias, error) {
+func (s AliasServiceImpl) ListByGroup(group string, sort Sort) ([]*domain.Alias, error) {
 	if group == "" {
 		return s.List()
 	}
 
-	aliasEntities := s.repo.ListByGroup(group)
+	aliasEntities := s.repo.ListByGroup(group, time.Now().Add(-time.Hour*24*7))
 	aliases := mapper.AliasesFromEntityToDomain(aliasEntities)
 	if err := s.setRecentHits(aliases); err != nil {
 		return nil, err
@@ -71,12 +87,12 @@ func (s AliasServiceImpl) ListByGroup(group string) ([]*domain.Alias, error) {
 	return aliases, nil
 }
 
-func (s AliasServiceImpl) ListByGroupAndAlias(group, alias string) ([]*domain.Alias, error) {
+func (s AliasServiceImpl) ListByGroupAndAlias(group, alias string, sort Sort) ([]*domain.Alias, error) {
 	if group == "" && alias == "" {
 		return s.List()
 	}
 
-	aliasEntities := s.repo.ListByGroupAndAlias(group, alias)
+	aliasEntities := s.repo.ListByGroupAndAlias(group, alias, time.Now().Add(-time.Hour*24*7))
 	aliases := mapper.AliasesFromEntityToDomain(aliasEntities)
 	if err := s.setRecentHits(aliases); err != nil {
 		return nil, err
@@ -86,7 +102,7 @@ func (s AliasServiceImpl) ListByGroupAndAlias(group, alias string) ([]*domain.Al
 }
 
 func (s AliasServiceImpl) GoTo(group, alias string) ([]*domain.Alias, error) {
-	aliasEntities := s.repo.ListByGroupAndAlias(group, alias)
+	aliasEntities := s.repo.ListByGroupAndAlias(group, alias, time.Now().Add(-time.Hour*24*7))
 
 	aliases := mapper.AliasesFromEntityToDomain(aliasEntities)
 	if err := s.setRecentHits(aliases); err != nil {

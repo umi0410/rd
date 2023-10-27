@@ -9,8 +9,8 @@ import (
 type AliasRepository interface {
 	Create(*entity.Alias) (*entity.Alias, error)
 	List() []*entity.Alias
-	ListByGroup(group string) []*entity.Alias
-	ListByGroupAndAlias(group, alias string) []*entity.Alias
+	ListByGroup(group string, recentHitCountSince time.Time) []*entity.Alias
+	ListByGroupAndAlias(group, alias string, recentHitCountSince time.Time) []*entity.Alias
 	Delete(id int) (*entity.Alias, error)
 	Close() error
 }

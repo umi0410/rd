@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/driver/mysql"
+	gormLogger "gorm.io/gorm/logger"
 	"rd/config"
 
 	//"gorm.io/driver/mysql"
@@ -38,9 +39,12 @@ func (r *GormAliasRepository) List() []*entity.Alias {
 	return aliases
 }
 
-func (r *GormAliasRepository) ListByGroup(group string) []*entity.Alias {
+func (r *GormAliasRepository) ListByGroup(group string, recentHitCountSince time.Time) []*entity.Alias {
 	aliases := make([]*entity.Alias, 0, 32)
-	res := r.cli.Where("alias_group = ?", group).Find(&aliases)
+	res := r.cli.Select("aliases.*, COALESCE(hit_count.count, 0)").
+		Where("alias_group = ?", group).
+		Joins("LEFT JOIN (SELECT alias_fk, count(*) AS count FROM event_alias_hits WHERE ? < event_alias_hits.created_at GROUP BY alias_fk) AS hit_count ON id = alias_fk", recentHitCountSince).
+		Order("hit_count.count desc").Find(&aliases)
 	if res.Error != nil {
 		log.Errorf("%+v", errors.WithStack(res.Error))
 		return aliases
@@ -49,9 +53,12 @@ func (r *GormAliasRepository) ListByGroup(group string) []*entity.Alias {
 	return aliases
 }
 
-func (r *GormAliasRepository) ListByGroupAndAlias(group, alias string) []*entity.Alias {
+func (r *GormAliasRepository) ListByGroupAndAlias(group, alias string, recentHitCountSince time.Time) []*entity.Alias {
 	aliases := make([]*entity.Alias, 0, 32)
-	res := r.cli.Where("alias_group = ? AND name = ?", group, alias).Find(&aliases)
+	res := r.cli.Select("aliases.*, COALESCE(hit_count.count, 0)").
+		Where("alias_group = ? AND alias", group, alias).
+		Joins("LEFT JOIN (SELECT alias_fk, count(*) AS count FROM event_alias_hits WHERE ? < event_alias_hits.created_at GROUP BY alias_fk) AS hit_count ON id = alias_fk", recentHitCountSince).
+		Order("hit_count.count desc").Find(&aliases)
 	if res.Error != nil {
 		log.Errorf("%+v", errors.WithStack(res.Error))
 		return aliases
@@ -129,7 +136,9 @@ func NewGormRepository(kind config.RepositoryKind, dsn string) (AliasRepository,
 			return nil, nil, errors.WithStack(err)
 		}
 	case config.RepoKindSqlite:
-		db, err = gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+		logger := gormLogger.Default
+		logger.LogMode(gormLogger.Info)
+		db, err = gorm.Open(sqlite.Open(dsn), &gorm.Config{Logger: logger})
 		if err != nil {
 			return nil, nil, errors.WithStack(err)
 		}
