@@ -5,18 +5,26 @@ import (
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"gorm.io/driver/mysql"
-	gormLogger "gorm.io/gorm/logger"
 	"rd/config"
 
-	//"gorm.io/driver/mysql"
-	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 	"rd/entity"
 )
 
 type GormAliasRepository struct {
 	cli *gorm.DB
+}
+
+func NewGormAliasRepository(db *gorm.DB, kind config.RepositoryKind) *GormAliasRepository {
+	repository := &GormAliasRepository{cli: db}
+
+	// XXX: when using sqlite memory, automatically
+	// add fixture data
+	if kind == config.RepoKindSqliteMemory {
+		repository.fixture()
+	}
+
+	return repository
 }
 
 func (r *GormAliasRepository) Create(alias *entity.Alias) (*entity.Alias, error) {
@@ -106,71 +114,6 @@ func (r *GormAliasRepository) Close() error {
 	return nil
 }
 
-//
-//func (r *GormAliasRepository) ListByAlias(alias string) []*domain.Alias {
-//	aliases := make([]*domain.Alias, 0, 32)
-//	res := r.cli.Where("name = ?", alias).Find(aliases)
-//	if res.Error != nil {
-//		log.Errorf("%+v", errors.WithStack(res.Error))
-//		return aliases
-//	}
-//
-//	return aliases
-//}
-//
-//func (*GormAliasRepository) Reload() error {
-//	//TODO implement me
-//	panic("implement me")
-//}
-
-// dns: user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local
-func NewGormRepository(kind config.RepositoryKind, dsn string) (AliasRepository, EventAliasHitRepository, error) {
-	var (
-		db  *gorm.DB
-		err error
-	)
-	switch kind {
-	case config.RepoKindMysql:
-		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
-		if err != nil {
-			return nil, nil, errors.WithStack(err)
-		}
-	case config.RepoKindSqlite:
-		logger := gormLogger.Default
-		logger.LogMode(gormLogger.Info)
-		db, err = gorm.Open(sqlite.Open(dsn), &gorm.Config{Logger: logger})
-		if err != nil {
-			return nil, nil, errors.WithStack(err)
-		}
-	}
-
-	if err := db.AutoMigrate(&entity.Alias{}, &entity.EventAliasHit{}); err != nil {
-		return nil, nil, errors.WithStack(err)
-	}
-
-	aliasRepo, err := &GormAliasRepository{
-		cli: db,
-	}, nil
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
-	}
-
-	eventAliasRepo, err := &GormEventAliasHitRepository{
-		cli: db,
-	}, nil
-	if err != nil {
-		return nil, nil, errors.WithStack(err)
-	}
-
-	// XXX: when using sqlite memory, automatically
-	// add fixture data
-	if kind == config.RepoKindSqliteMemory {
-		aliasRepo.fixture()
-	}
-
-	return aliasRepo, eventAliasRepo, nil
-}
-
 func (r *GormAliasRepository) fixture() {
 	for _, f := range []*entity.Alias{{
 		AliasGroup:  "james",
@@ -191,39 +134,4 @@ func (r *GormAliasRepository) fixture() {
 			log.Panicf("%+v", err)
 		}
 	}
-}
-
-type GormEventAliasHitRepository struct {
-	cli *gorm.DB
-}
-
-func (r *GormEventAliasHitRepository) Create(evt *entity.EventAliasHit) (*entity.EventAliasHit, error) {
-	res := r.cli.Create(evt)
-	if res.Error != nil {
-		return nil, errors.WithStack(res.Error)
-	}
-
-	return evt, nil
-}
-
-func (r *GormEventAliasHitRepository) ListByAliasIds(aliasIds []uint) []*entity.EventAliasHit {
-	events := make([]*entity.EventAliasHit, 0, 32)
-	res := r.cli.Find(&events, aliasIds)
-	if res.Error != nil {
-		log.Errorf("%+v", errors.WithStack(res.Error))
-		return []*entity.EventAliasHit{}
-	}
-
-	return events
-}
-
-func (r *GormEventAliasHitRepository) ListByAliasIdsAndGreaterThanCreatedAt(aliasIds []uint, createdAt time.Time) []*entity.EventAliasHit {
-	events := make([]*entity.EventAliasHit, 0, 32)
-	res := r.cli.Where("created_at >= ? AND alias_fk IN ?", createdAt, aliasIds).Find(&events)
-	if res.Error != nil {
-		log.Errorf("%+v", errors.WithStack(res.Error))
-		return []*entity.EventAliasHit{}
-	}
-
-	return events
 }

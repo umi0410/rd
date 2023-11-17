@@ -23,6 +23,8 @@ var (
 func (s *Server) GoTo(c *fiber.Ctx) error {
 	qGroup := c.Query("group")
 	qAlias := c.Query("alias")
+	user, _ := s.GetUser(c)
+
 	destination := ""
 	defer func() {
 		labels := map[string]string{
@@ -42,7 +44,7 @@ func (s *Server) GoTo(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("group is a required argument")
 	}
 
-	aliases, err := s.aliasSvc.GoTo(qGroup, qAlias)
+	aliases, err := s.aliasSvc.GoTo(c.Context(), user, qGroup, qAlias)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(err)
 	}
@@ -82,6 +84,7 @@ func (s *Server) ListAliases(c *fiber.Ctx) error {
 	if err := qSort.Validate(); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(err)
 	}
+	user, _ := s.GetUser(c)
 
 	var (
 		aliases []*domain.Alias
@@ -89,11 +92,11 @@ func (s *Server) ListAliases(c *fiber.Ctx) error {
 	)
 
 	if len(qGroup) != 0 && len(qAlias) != 0 {
-		aliases, err = s.aliasSvc.ListByGroupAndAlias(qGroup, qAlias, qSort)
-	} else if qAlias == "" {
-		aliases, err = s.aliasSvc.ListByGroup(qGroup, qSort)
+		aliases, err = s.aliasSvc.ListByGroupAndAlias(c.Context(), user, qGroup, qAlias, qSort)
+	} else if len(qGroup) != 0 {
+		aliases, err = s.aliasSvc.ListByGroup(c.Context(), user, qGroup, qSort)
 	} else {
-		aliases, err = s.aliasSvc.List()
+		aliases, err = s.aliasSvc.List(c.Context(), user)
 	}
 	if err != nil {
 		return err

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -13,19 +14,20 @@ import (
 )
 
 type AliasService interface {
-	Create(*entity.Alias) (*domain.Alias, error)
-	List() ([]*domain.Alias, error)
+	Create(ctx context.Context, alias *entity.Alias) (*domain.Alias, error)
+	List(ctx context.Context, user string) ([]*domain.Alias, error)
 	// 최근 X time.Duration 동안의 hit count table을 sum한 값을 내림차순으로 정렬한
 	// alias row들을 N개 조회하라.
 	// SELECT
-	ListByGroup(group string, sort Sort) ([]*domain.Alias, error)
-	ListByGroupAndAlias(group, alias string, sort Sort) ([]*domain.Alias, error)
-	GoTo(group, alias string) ([]*domain.Alias, error)
-	Update(*entity.Alias) (*domain.Alias, error)
-	Delete(id int) (*domain.Alias, error)
+	ListByGroup(ctx context.Context, user, group string, sort Sort) ([]*domain.Alias, error)
+	ListByGroupAndAlias(ctx context.Context, user, group, alias string, sort Sort) ([]*domain.Alias, error)
+	GoTo(ctx context.Context, user, group, alias string) ([]*domain.Alias, error)
+	Update(ctx context.Context, alias *entity.Alias) (*domain.Alias, error)
+	Delete(ctx context.Context, id int) (*domain.Alias, error)
 }
 
 type AliasServiceImpl struct {
+	authService       AuthService
 	repo              repository.AliasRepository
 	eventAliasHitRepo repository.EventAliasHitRepository
 }
@@ -35,6 +37,8 @@ type Sort string
 var (
 	SortByDefault         Sort = ""
 	SortByRecentHitCounts Sort = "recent_hit_counts_desc"
+
+	ErrNoPermission = fmt.Errorf("no permission")
 )
 
 func (s *Sort) Validate() error {
@@ -50,7 +54,7 @@ var (
 	ErrDuplicatedAlias = fmt.Errorf("duplicated aliases already exist")
 )
 
-func (s AliasServiceImpl) Create(alias *entity.Alias) (*domain.Alias, error) {
+func (s AliasServiceImpl) Create(ctx context.Context, alias *entity.Alias) (*domain.Alias, error) {
 	if len(s.repo.ListByGroupAndAlias(alias.AliasGroup, alias.Name, time.Now().Add(-time.Hour*24*7))) != 0 {
 		return nil, errors.WithStack(ErrDuplicatedAlias)
 	}
@@ -63,7 +67,10 @@ func (s AliasServiceImpl) Create(alias *entity.Alias) (*domain.Alias, error) {
 	return mapper.AliasFromEntityToDomain(alias), nil
 }
 
-func (s AliasServiceImpl) List() ([]*domain.Alias, error) {
+func (s AliasServiceImpl) List(ctx context.Context, user string) ([]*domain.Alias, error) {
+	if !s.authService.IsAdmin(ctx, user) {
+		return nil, errors.Wrap(ErrNoPermission, "Only admins can list aliases without a group filter.")
+	}
 	aliasEntities := s.repo.List()
 	aliases := mapper.AliasesFromEntityToDomain(aliasEntities)
 	if err := s.setRecentHits(aliases); err != nil {
@@ -73,9 +80,9 @@ func (s AliasServiceImpl) List() ([]*domain.Alias, error) {
 	return aliases, nil
 }
 
-func (s AliasServiceImpl) ListByGroup(group string, sort Sort) ([]*domain.Alias, error) {
-	if group == "" {
-		return s.List()
+func (s AliasServiceImpl) ListByGroup(ctx context.Context, user, group string, sort Sort) ([]*domain.Alias, error) {
+	if !s.authService.IsInGroup(ctx, user, group) && !s.authService.IsAdmin(ctx, user) {
+		return nil, errors.Wrap(ErrNoPermission, fmt.Sprintf("user(%s) doesn't have a permission to retrieve aliases of the group(%s).", user, group))
 	}
 
 	aliasEntities := s.repo.ListByGroup(group, time.Now().Add(-time.Hour*24*7))
@@ -87,9 +94,13 @@ func (s AliasServiceImpl) ListByGroup(group string, sort Sort) ([]*domain.Alias,
 	return aliases, nil
 }
 
-func (s AliasServiceImpl) ListByGroupAndAlias(group, alias string, sort Sort) ([]*domain.Alias, error) {
+func (s AliasServiceImpl) ListByGroupAndAlias(ctx context.Context, user, group, alias string, sort Sort) ([]*domain.Alias, error) {
+	if !s.authService.IsInGroup(ctx, user, group) && !s.authService.IsAdmin(ctx, user) {
+		return nil, errors.Wrap(ErrNoPermission, fmt.Sprintf("user(%s) doesn't have a permission to retrieve an alias of the group(%s).", user, group))
+	}
+
 	if group == "" && alias == "" {
-		return s.List()
+		return s.List(ctx, user)
 	}
 
 	aliasEntities := s.repo.ListByGroupAndAlias(group, alias, time.Now().Add(-time.Hour*24*7))
@@ -101,7 +112,11 @@ func (s AliasServiceImpl) ListByGroupAndAlias(group, alias string, sort Sort) ([
 	return aliases, nil
 }
 
-func (s AliasServiceImpl) GoTo(group, alias string) ([]*domain.Alias, error) {
+func (s AliasServiceImpl) GoTo(ctx context.Context, user, group, alias string) ([]*domain.Alias, error) {
+	if !s.authService.IsInGroup(ctx, user, group) && !s.authService.IsAdmin(ctx, user) {
+		return nil, errors.Wrap(ErrNoPermission, fmt.Sprintf("user(%s) doesn't have a permission to retrieve an alias of the group(%s).", user, group))
+	}
+
 	aliasEntities := s.repo.ListByGroupAndAlias(group, alias, time.Now().Add(-time.Hour*24*7))
 
 	aliases := mapper.AliasesFromEntityToDomain(aliasEntities)
@@ -128,11 +143,11 @@ func (s AliasServiceImpl) GoTo(group, alias string) ([]*domain.Alias, error) {
 	return aliases, nil
 }
 
-func (s AliasServiceImpl) Update(*entity.Alias) (*domain.Alias, error) {
+func (s AliasServiceImpl) Update(ctx context.Context, alias *entity.Alias) (*domain.Alias, error) {
 	panic("implement me")
 }
 
-func (s AliasServiceImpl) Delete(id int) (*domain.Alias, error) {
+func (s AliasServiceImpl) Delete(ctx context.Context, id int) (*domain.Alias, error) {
 	aliasEntity, err := s.repo.Delete(id)
 	if err != nil {
 		return nil, err
@@ -146,10 +161,11 @@ func (s AliasServiceImpl) Delete(id int) (*domain.Alias, error) {
 	return alias, nil
 }
 
-func NewAliasService(repo repository.AliasRepository, eventAliasHitRepo repository.EventAliasHitRepository) AliasService {
+func NewAliasService(repo repository.AliasRepository, eventAliasHitRepo repository.EventAliasHitRepository, authService AuthService) AliasService {
 	return &AliasServiceImpl{
 		repo:              repo,
 		eventAliasHitRepo: eventAliasHitRepo,
+		authService:       authService,
 	}
 }
 

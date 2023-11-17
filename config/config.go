@@ -19,6 +19,9 @@ type Config struct {
 		Mysql struct {
 			Dsn string
 		}
+		Cockroachdb struct {
+			Dsn string
+		}
 		Nats struct {
 			Host     string
 			Port     int
@@ -35,6 +38,7 @@ const (
 	RepoKindSqlite       RepositoryKind = "sqlite"
 	RepoKindSqliteMemory RepositoryKind = "sqliteMemory"
 	RepoKindMysql        RepositoryKind = "mysql"
+	RepoKindCockroachdb  RepositoryKind = "cockroachdb"
 	RepositoryKindNats   RepositoryKind = "nats"
 )
 

@@ -23,10 +23,11 @@ var (
 	}, []string{"group", "alias", "destination"})
 )
 
-func NewServer(aliasRepo repository.AliasRepository, aliasSvc service.AliasService) (*Server, error) {
+func NewServer(aliasRepo repository.AliasRepository, aliasSvc service.AliasService, authSvc service.AuthService) (*Server, error) {
 	s := &Server{
 		aliasRepo: aliasRepo,
 		aliasSvc:  aliasSvc,
+		authSvc:   authSvc,
 	}
 
 	app = fiber.New()
@@ -48,6 +49,7 @@ func NewServer(aliasRepo repository.AliasRepository, aliasSvc service.AliasServi
 type Server struct {
 	aliasRepo repository.AliasRepository
 	aliasSvc  service.AliasService
+	authSvc   service.AuthService
 }
 
 func (s *Server) Run(host, port string) error {
@@ -57,4 +59,13 @@ func (s *Server) Run(host, port string) error {
 	}
 
 	return nil
+}
+
+func (s *Server) GetUser(ctx *fiber.Ctx) (string, bool) {
+	auth := ctx.Query("auth")
+	if len(auth) == 0 {
+		return "", false
+	}
+
+	return auth, true
 }

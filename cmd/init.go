@@ -2,46 +2,43 @@ package cmd
 
 import (
 	log "github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 	"rd/config"
 	"rd/repository"
 	"rd/service"
 )
 
-func initialize() (repository.AliasRepository, repository.EventAliasHitRepository, service.AliasService) {
+func initialize() (repository.AliasRepository, repository.EventAliasHitRepository, service.AliasService, service.AuthService) {
 	repoCfg := config.Cfg.Repository
 	var (
+		db                *gorm.DB
+		authRepo          repository.AuthRepository
 		aliasRepo         repository.AliasRepository
 		eventAliasHitRepo repository.EventAliasHitRepository
-		aliasSvc          service.AliasService
+		authService       service.AuthService
+		aliasService      service.AliasService
 		err               error
 	)
 	switch repoCfg.Kind {
-	case config.RepoKindSqliteMemory, config.RepoKindMysql:
+	case config.RepoKindSqliteMemory, config.RepoKindMysql, config.RepoKindCockroachdb:
 		dsn := repoCfg.SqliteMemory.Dsn
 		if repoCfg.Kind == config.RepoKindMysql {
 			dsn = repoCfg.Mysql.Dsn
+		} else if repoCfg.Kind == config.RepoKindCockroachdb {
+			dsn = repoCfg.Cockroachdb.Dsn
 		}
-		aliasRepo, eventAliasHitRepo, err = repository.NewGormRepository(repoCfg.Kind, dsn)
-		if err != nil {
+		if db, err = repository.NewDB(repoCfg.Kind, dsn); err != nil {
 			log.Panicf("%+v", err)
 		}
-	//case config.RepositoryKindNats:
-	//	repo, err = repository.NewNatsRepository(repository.NatsRepositoryConfig{
-	//		Host:     repoCfg.Nats.Host,
-	//		Port:     repoCfg.Nats.Port,
-	//		Username: repoCfg.Nats.Username,
-	//		Password: repoCfg.Nats.Password,
-	//		Bucket:   repoCfg.Nats.Bucket,
-	//	})
-	//	if err != nil {
-	//		log.Panicf("%+v", err)
-	//	}
-	//}
+		aliasRepo = repository.NewGormAliasRepository(db, repoCfg.Kind)
+		eventAliasHitRepo = repository.NewGormEventAliasHitRepository(db)
+		authRepo = repository.NewGormAuthRepository(db)
 	default:
 		log.Panicf("Unsupported repo kind")
 	}
 
-	aliasSvc = service.NewAliasService(aliasRepo, eventAliasHitRepo)
+	authService = service.NewAuthService(authRepo)
+	aliasService = service.NewAliasService(aliasRepo, eventAliasHitRepo, authService)
 
-	return aliasRepo, eventAliasHitRepo, aliasSvc
+	return aliasRepo, eventAliasHitRepo, aliasService, authService
 }
