@@ -22,6 +22,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"rd/config"
 	"rd/metric"
 	//"rd/repository/store"
 	"rd/server"
@@ -41,7 +42,7 @@ search engine list of your web browser.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		aliasRepo, _, aliasService, authService := initialize()
 
-		srv, err := server.NewServer(aliasRepo, aliasService, authService)
+		srv, err := server.NewServer(aliasRepo, aliasService, authService, *host, *port, config.Cfg.Tls)
 		if err != nil {
 			log.Errorf("%+v", err)
 		}
@@ -64,7 +65,7 @@ search engine list of your web browser.`,
 			os.Exit(0)
 		}()
 		// TODO: Shutdown webserver gracefully
-		if err := srv.Run(*host, *port); err != nil {
+		if err := srv.Run(); err != nil {
 			log.Errorf("%+v", err)
 		}
 	},

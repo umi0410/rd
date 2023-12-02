@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/favicon"
+	"rd/config"
 	"rd/repository"
 	"rd/service"
 
@@ -23,11 +24,14 @@ var (
 	}, []string{"group", "alias", "destination"})
 )
 
-func NewServer(aliasRepo repository.AliasRepository, aliasSvc service.AliasService, authSvc service.AuthService) (*Server, error) {
+func NewServer(aliasRepo repository.AliasRepository, aliasSvc service.AliasService, authSvc service.AuthService, host, port string, tlsConfig config.TlsConfig) (*Server, error) {
 	s := &Server{
 		aliasRepo: aliasRepo,
 		aliasSvc:  aliasSvc,
 		authSvc:   authSvc,
+		host:      host,
+		port:      port,
+		tlsConfig: tlsConfig,
 	}
 
 	app = fiber.New()
@@ -50,12 +54,31 @@ type Server struct {
 	aliasRepo repository.AliasRepository
 	aliasSvc  service.AliasService
 	authSvc   service.AuthService
+	host      string
+	port      string
+	tlsConfig config.TlsConfig
 }
 
-func (s *Server) Run(host, port string) error {
-	log.WithField("goto", fmt.Sprintf("http://%s:%s/goto", host, port)).Info("Start running")
-	if err := app.Listen(fmt.Sprintf("%s:%s", host, port)); err != nil {
-		return errors.WithStack(err)
+func (s *Server) Run() error {
+	addr := fmt.Sprintf("%s:%s", s.host, s.port)
+	log.Infof("Starting running on %s", addr)
+
+	switch s.tlsConfig.Mode {
+	case config.TlsModeMutual:
+		if err := app.ListenMutualTLS(addr, s.tlsConfig.CertFile, s.tlsConfig.PrivateKeyFile, s.tlsConfig.ClientCaCertFile); err != nil {
+			return errors.WithStack(err)
+		}
+	case config.TlsModeSimple:
+		if err := app.ListenTLS(addr, s.tlsConfig.CertFile, s.tlsConfig.PrivateKeyFile); err != nil {
+			return errors.WithStack(err)
+		}
+	default:
+		log.Warningf("Unknown TLS mode: %s, so just run the server in the plain text mode", s.tlsConfig.Mode)
+		fallthrough
+	case config.TlsModePlaintext:
+		if err := app.Listen(addr); err != nil {
+			return errors.WithStack(err)
+		}
 	}
 
 	return nil

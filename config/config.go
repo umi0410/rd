@@ -10,7 +10,15 @@ import (
 
 var Cfg *Config
 
+type TlsConfig struct {
+	Mode             TlsMode
+	CertFile         string
+	PrivateKeyFile   string
+	ClientCaCertFile string
+}
+
 type Config struct {
+	Tls        TlsConfig
 	Repository struct {
 		Kind         RepositoryKind
 		SqliteMemory struct {
@@ -40,6 +48,14 @@ const (
 	RepoKindMysql        RepositoryKind = "mysql"
 	RepoKindCockroachdb  RepositoryKind = "cockroachdb"
 	RepositoryKindNats   RepositoryKind = "nats"
+)
+
+type TlsMode string
+
+const (
+	TlsModePlaintext TlsMode = "plaintext"
+	TlsModeSimple    TlsMode = "simple"
+	TlsModeMutual    TlsMode = "mutual"
 )
 
 func Load() error {
