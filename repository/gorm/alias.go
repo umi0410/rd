@@ -64,7 +64,7 @@ func (r *GormAliasRepository) ListByGroup(group string, recentHitCountSince time
 func (r *GormAliasRepository) ListByGroupAndAlias(group, alias string) []*entity.Alias {
 	aliases := make([]*entity.Alias, 0, 32)
 	res := r.cli.Model(new(entity.Alias)).
-		Where("alias_group = ? AND alias", group, alias).
+		Where("alias_group = ? AND name = ?", group, alias).
 		Find(&aliases)
 	if res.Error != nil {
 		log.Errorf("%+v", errors.WithStack(res.Error))
