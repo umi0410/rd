@@ -69,7 +69,7 @@ func (s *Server) CreateAlias(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 
-	alias, err := s.aliasRepo.Create(inputAlias)
+	alias, err := s.aliasSvc.Create(c.Context(), inputAlias)
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}

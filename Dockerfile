@@ -7,6 +7,9 @@ COPY . .
 RUN go build -o rd
 
 FROM alpine
+
+LABEL org.opencontainers.image.source="https://github.com/umi0410/rd"
+
 WORKDIR /app
 COPY --from=builder /app/rd .
 COPY ./config/default.yaml /app/config/default.yaml

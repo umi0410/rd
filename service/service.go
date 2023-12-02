@@ -55,7 +55,15 @@ var (
 )
 
 func (s AliasServiceImpl) Create(ctx context.Context, alias *entity.Alias) (*domain.Alias, error) {
-	if len(s.repo.ListByGroupAndAlias(alias.AliasGroup, alias.Name, time.Now().Add(-time.Hour*24*7))) != 0 {
+	if err := alias.Validate(); err != nil {
+		return nil, err
+	}
+	alias.CreatedAt = time.Time{}
+	now := time.Now()
+	SetWhenZeroTimeValue(&alias.CreatedAt, now)
+	SetWhenZeroTimeValue(&alias.UpdatedAt, now)
+
+	if len(s.repo.ListByGroupAndAlias(alias.AliasGroup, alias.Name)) != 0 {
 		return nil, errors.WithStack(ErrDuplicatedAlias)
 	}
 
@@ -103,7 +111,7 @@ func (s AliasServiceImpl) ListByGroupAndAlias(ctx context.Context, user, group, 
 		return s.List(ctx, user)
 	}
 
-	aliasEntities := s.repo.ListByGroupAndAlias(group, alias, time.Now().Add(-time.Hour*24*7))
+	aliasEntities := s.repo.ListByGroupAndAlias(group, alias)
 	aliases := mapper.AliasesFromEntityToDomain(aliasEntities)
 	if err := s.setRecentHits(aliases); err != nil {
 		return nil, err
@@ -117,7 +125,7 @@ func (s AliasServiceImpl) GoTo(ctx context.Context, user, group, alias string) (
 		return nil, errors.Wrap(ErrNoPermission, fmt.Sprintf("user(%s) doesn't have a permission to retrieve an alias of the group(%s).", user, group))
 	}
 
-	aliasEntities := s.repo.ListByGroupAndAlias(group, alias, time.Now().Add(-time.Hour*24*7))
+	aliasEntities := s.repo.ListByGroupAndAlias(group, alias)
 
 	aliases := mapper.AliasesFromEntityToDomain(aliasEntities)
 	if err := s.setRecentHits(aliases); err != nil {

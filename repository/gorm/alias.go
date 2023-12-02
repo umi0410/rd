@@ -1,4 +1,4 @@
-package repository
+package gorm
 
 import (
 	"time"
@@ -61,12 +61,11 @@ func (r *GormAliasRepository) ListByGroup(group string, recentHitCountSince time
 	return aliases
 }
 
-func (r *GormAliasRepository) ListByGroupAndAlias(group, alias string, recentHitCountSince time.Time) []*entity.Alias {
+func (r *GormAliasRepository) ListByGroupAndAlias(group, alias string) []*entity.Alias {
 	aliases := make([]*entity.Alias, 0, 32)
-	res := r.cli.Select("aliases.*, COALESCE(hit_count.count, 0)").
+	res := r.cli.Model(new(entity.Alias)).
 		Where("alias_group = ? AND alias", group, alias).
-		Joins("LEFT JOIN (SELECT alias_fk, count(*) AS count FROM event_alias_hits WHERE ? < event_alias_hits.created_at GROUP BY alias_fk) AS hit_count ON id = alias_fk", recentHitCountSince).
-		Order("hit_count.count desc").Find(&aliases)
+		Find(&aliases)
 	if res.Error != nil {
 		log.Errorf("%+v", errors.WithStack(res.Error))
 		return aliases

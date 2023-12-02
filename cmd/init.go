@@ -1,17 +1,24 @@
 package cmd
 
 import (
+	"context"
+
+	"github.com/pkg/errors"
+
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	log "github.com/sirupsen/logrus"
-	"gorm.io/gorm"
+	gormgorm "gorm.io/gorm"
 	"rd/config"
 	"rd/repository"
+	"rd/repository/dynamodb"
+	"rd/repository/gorm"
 	"rd/service"
 )
 
 func initialize() (repository.AliasRepository, repository.EventAliasHitRepository, service.AliasService, service.AuthService) {
 	repoCfg := config.Cfg.Repository
 	var (
-		db                *gorm.DB
+		db                *gormgorm.DB
 		authRepo          repository.AuthRepository
 		aliasRepo         repository.AliasRepository
 		eventAliasHitRepo repository.EventAliasHitRepository
@@ -30,9 +37,19 @@ func initialize() (repository.AliasRepository, repository.EventAliasHitRepositor
 		if db, err = repository.NewDB(repoCfg.Kind, dsn); err != nil {
 			log.Panicf("%+v", err)
 		}
-		aliasRepo = repository.NewGormAliasRepository(db, repoCfg.Kind)
-		eventAliasHitRepo = repository.NewGormEventAliasHitRepository(db)
-		authRepo = repository.NewGormAuthRepository(db)
+		aliasRepo = gorm.NewGormAliasRepository(db, repoCfg.Kind)
+		eventAliasHitRepo = gorm.NewGormEventAliasHitRepository(db)
+		authRepo = gorm.NewGormAuthRepository(db)
+	case config.RepoKindDynamodb:
+		awsConfig, err := awsconfig.LoadDefaultConfig(context.Background(), awsconfig.WithRegion(repoCfg.Dynamodb.Region))
+		if err != nil {
+			log.Panicf("%+v", errors.WithStack(err))
+		}
+		aliasRepo = dynamodb.NewDynamodbAliasRepository(repoCfg.Dynamodb, awsConfig)
+		if err != nil {
+			log.Panicf("%+v", err)
+		}
+		authRepo = dynamodb.NewDynamodbAuthRepository(repoCfg.Dynamodb, awsConfig)
 	default:
 		log.Panicf("Unsupported repo kind")
 	}

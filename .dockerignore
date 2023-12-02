@@ -29,4 +29,6 @@ config/*
 !config/default.yaml
 !config/config.go
 
+dev/data/*
+
 frontend

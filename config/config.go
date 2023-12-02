@@ -17,6 +17,17 @@ type TlsConfig struct {
 	ClientCaCertFile string
 }
 
+type DynamodbConfig struct {
+	Region                   string
+	AliasTableName           string
+	AliasTablePkName         string
+	UserTableName            string
+	UserTablePkName          string
+	AliasHitEventTableName   string
+	AliasHitEventTablePkName string
+	//Profile string
+}
+
 type Config struct {
 	Tls        TlsConfig
 	Repository struct {
@@ -37,6 +48,7 @@ type Config struct {
 			Password string
 			Bucket   string
 		}
+		Dynamodb DynamodbConfig
 	}
 }
 
@@ -47,6 +59,7 @@ const (
 	RepoKindSqliteMemory RepositoryKind = "sqliteMemory"
 	RepoKindMysql        RepositoryKind = "mysql"
 	RepoKindCockroachdb  RepositoryKind = "cockroachdb"
+	RepoKindDynamodb     RepositoryKind = "dynamodb"
 	RepositoryKindNats   RepositoryKind = "nats"
 )
 
