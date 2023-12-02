@@ -45,14 +45,16 @@ func (r *DynamodbAliasRepository) Create(alias *entity.Alias) (*entity.Alias, er
 	}
 	_, err := r.cli.PutItem(ctx, &awsdynamodb.PutItemInput{
 		Item: map[string]awsdynamodbtypes.AttributeValue{
-			r.aliasTablePkName: ddbString(alias.GetDynamodbPk()),
-			"destination":      ddbString(alias.Destination),
-			"created_at":       ddbString(alias.CreatedAt.String()),
-			"updated_at":       ddbString(alias.UpdatedAt.String()),
-			"deleted_at":       ddbString(deletedAt),
+			"group":       ddbString(alias.AliasGroup),
+			"name":        ddbString(alias.Name),
+			"destination": ddbString(alias.Destination),
+			"created_at":  ddbString(alias.CreatedAt.String()),
+			"updated_at":  ddbString(alias.UpdatedAt.String()),
+			"deleted_at":  ddbString(deletedAt),
 		},
-		TableName:           aws.String(r.aliasTableName),
-		ConditionExpression: aws.String(fmt.Sprintf("attribute_not_exists(%s)", r.aliasTablePkName)),
+		TableName:                aws.String(r.aliasTableName),
+		ExpressionAttributeNames: map[string]string{"#group": "group", "#name": "name"},
+		ConditionExpression:      aws.String(fmt.Sprintf("attribute_not_exists(#group) AND attribute_not_exists(#name)")),
 	})
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -86,8 +88,9 @@ func (r *DynamodbAliasRepository) ListByGroup(group string, recentHitCountSince 
 	ctx := context.TODO()
 	aliases := make([]*entity.Alias, 0, 32)
 	output, err := r.cli.Query(ctx, &awsdynamodb.QueryInput{
-		TableName:              aws.String(r.aliasTableName),
-		KeyConditionExpression: aws.String(fmt.Sprintf("begins_with(%s, :group)", r.aliasTablePkName)),
+		TableName:                aws.String(r.aliasTableName),
+		KeyConditionExpression:   aws.String("#group = :group"),
+		ExpressionAttributeNames: map[string]string{"#group": "group"},
 		ExpressionAttributeValues: map[string]awsdynamodbtypes.AttributeValue{
 			":group": ddbString(group),
 		},
@@ -107,12 +110,13 @@ func (r *DynamodbAliasRepository) ListByGroup(group string, recentHitCountSince 
 func (r *DynamodbAliasRepository) ListByGroupAndAlias(group, alias string) []*entity.Alias {
 	ctx := context.TODO()
 	aliases := make([]*entity.Alias, 0, 32)
-	pk := entity.Alias{AliasGroup: group, Name: alias}.GetDynamodbPk()
 	output, err := r.cli.Query(ctx, &awsdynamodb.QueryInput{
-		TableName:              aws.String(r.aliasTableName),
-		KeyConditionExpression: aws.String(fmt.Sprintf("%s = :pk", r.aliasTablePkName)),
+		TableName:                aws.String(r.aliasTableName),
+		KeyConditionExpression:   aws.String("#group = :group AND #name = :name"),
+		ExpressionAttributeNames: map[string]string{"#group": "group", "#name": "name"},
 		ExpressionAttributeValues: map[string]awsdynamodbtypes.AttributeValue{
-			":pk": ddbString(pk),
+			":group": ddbString(group),
+			":name":  ddbString(alias),
 		},
 	})
 	if err != nil {
@@ -129,19 +133,10 @@ func (r *DynamodbAliasRepository) ListByGroupAndAlias(group, alias string) []*en
 
 func (r *DynamodbAliasRepository) mapDynamoAttributeValueMapToAliasEntity(m map[string]awsdynamodbtypes.AttributeValue) *entity.Alias {
 	alias := new(entity.Alias)
-	awsdynamodbattribute.UnmarshalMap(m, alias)
-	pk, err := stringFromDdbAttribute(m[r.aliasTablePkName])
-	if err != nil {
-		log.Error(err)
-		return nil
+
+	if err := awsdynamodbattribute.UnmarshalMap(m, alias); err != nil {
+		log.Error(errors.WithStack(err))
 	}
-	group, name, err := entity.GetGroupAndNameFromDynamodbPk(pk)
-	if err != nil {
-		log.Error(err)
-		return nil
-	}
-	alias.AliasGroup = group
-	alias.Name = name
 
 	return alias
 }

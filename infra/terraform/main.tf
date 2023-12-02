@@ -11,8 +11,14 @@ resource "aws_dynamodb_table" "alias" {
   billing_mode = "PAY_PER_REQUEST"
   # partition key
   hash_key = "group"
+  # sort key
+  range_key = "name"
   attribute {
-    name = "group_alias"
+    name = "group"
+    type = "S"
+  }
+  attribute {
+    name = "name"
     type = "S"
   }
 

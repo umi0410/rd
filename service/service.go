@@ -135,16 +135,20 @@ func (s AliasServiceImpl) GoTo(ctx context.Context, user, group, alias string) (
 	if len(aliases) >= 1 {
 		hit = true
 	}
-	for _, a := range aliases {
-		evt, err := s.eventAliasHitRepo.Create(&entity.EventAliasHit{
-			Hit:     hit,
-			AliasFK: a.ID,
-			User:    "",
-		})
-		if err != nil {
-			log.Errorf("%+v", errors.WithStack(err))
-		} else {
-			log.Infof("Created an EventAliasHit(%+v)", evt)
+	if s.eventAliasHitRepo == nil {
+		log.Warn("eventAliasHitRepo is nil. It might not have been developed yet, so it's just skipped.")
+	} else {
+		for _, a := range aliases {
+			evt, err := s.eventAliasHitRepo.Create(&entity.EventAliasHit{
+				Hit:     hit,
+				AliasFK: a.ID,
+				User:    "",
+			})
+			if err != nil {
+				log.Errorf("%+v", errors.WithStack(err))
+			} else {
+				log.Infof("Created an EventAliasHit(%+v)", evt)
+			}
 		}
 	}
 
@@ -178,6 +182,11 @@ func NewAliasService(repo repository.AliasRepository, eventAliasHitRepo reposito
 }
 
 func (s AliasServiceImpl) setRecentHits(aliases []*domain.Alias) error {
+	if s.eventAliasHitRepo == nil {
+		log.Warn("eventAliasHitRepo is nil. It might not have been developed yet, so it's just skipped.")
+		return nil
+	}
+
 	var (
 		//aliasIds       []uint
 		recentDuration     = time.Hour * 24 * 14 // 2 Weeks
