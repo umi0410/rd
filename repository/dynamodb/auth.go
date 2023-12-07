@@ -16,8 +16,8 @@ func NewDynamodbAuthRepository(rdDynamodbConfig config.DynamodbConfig, awsConfig
 	cli := awsdynamodb.NewFromConfig(awsConfig)
 	repository := &DynamodbAuthRepository{
 		cli:             cli,
-		userTableName:   rdDynamodbConfig.UserTableName,
-		userTablePkName: rdDynamodbConfig.UserTablePkName,
+		tableName:       rdDynamodbConfig.UserTableName,
+		userInfoSortKey: "userInfo",
 	}
 
 	return repository
@@ -25,16 +25,17 @@ func NewDynamodbAuthRepository(rdDynamodbConfig config.DynamodbConfig, awsConfig
 
 type DynamodbAuthRepository struct {
 	cli             *awsdynamodb.Client
-	userTableName   string
-	userTablePkName string
+	tableName       string
+	userInfoSortKey string
 }
 
 func (r *DynamodbAuthRepository) GetUser(ctx context.Context, username string) (*entity.User, error) {
-	user := new(entity.User)
+	user := &entity.User{Username: username}
 	output, err := r.cli.GetItem(ctx, &awsdynamodb.GetItemInput{
-		TableName: aws.String(r.userTableName),
+		TableName: aws.String(r.tableName),
 		Key: map[string]types.AttributeValue{
-			r.userTablePkName: ddbString(username),
+			"PK": ddbString(user.GetDynamodbPartitionKey()),
+			"SK": ddbString(r.userInfoSortKey),
 		},
 	})
 	if err != nil {
@@ -44,6 +45,11 @@ func (r *DynamodbAuthRepository) GetUser(ctx context.Context, username string) (
 	if err := awsdynamodbattribute.UnmarshalMap(output.Item, user); err != nil {
 		return nil, errors.WithStack(err)
 	}
+	pk, err := stringFromDdbAttribute(output.Item["PK"])
+	if err != nil {
+		return nil, err
+	}
+	user.Username = entity.GetUserNameFrom(pk)
 
 	groupNames, err := stringsFromDdbAttribute(output.Item["groups"])
 	if err != nil {

@@ -2,10 +2,19 @@ package entity
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
+)
+
+const (
+	dynamodbKeySeparator                    = ":"
+	dynamodbAliasPartitionKeyPrefix         = "groups"
+	dynamodbAliasSortKeyPrefix              = "aliases"
+	dynamodbUserPartitionKeyPrefix          = "users"
+	dynamodbAliasHitEventPartitionKeyPrefix = "hits"
 )
 
 type Alias struct {
@@ -14,6 +23,32 @@ type Alias struct {
 	Name        string           `json:"name"`
 	Destination string           `json:"destination"`
 	Hits        []*EventAliasHit `gorm:"foreignKey:alias_fk"`
+}
+
+func (alias Alias) GetDynamodbPartitionKey() string {
+	return dynamodbAliasPartitionKeyPrefix + dynamodbKeySeparator + alias.AliasGroup
+}
+
+func (alias Alias) GetDynamodbSortKey() string {
+	return dynamodbAliasSortKeyPrefix + dynamodbKeySeparator + alias.Name
+}
+
+func GetAliasGroupFrom(dynamodbPartitionKey string) string {
+	prefix := dynamodbAliasPartitionKeyPrefix + dynamodbKeySeparator
+	if !strings.HasPrefix(dynamodbPartitionKey, prefix) {
+		return ""
+	}
+
+	return strings.TrimPrefix(dynamodbPartitionKey, prefix)
+}
+
+func GetAliasName(dynamodbSortKey string) string {
+	prefix := dynamodbAliasSortKeyPrefix + dynamodbKeySeparator
+	if !strings.HasPrefix(dynamodbSortKey, prefix) {
+		return ""
+	}
+
+	return strings.TrimPrefix(dynamodbSortKey, prefix)
 }
 
 func (alias Alias) Validate() error {
@@ -45,6 +80,23 @@ type User struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
+}
+
+func (user User) GetDynamodbPartitionKey() string {
+	return dynamodbUserPartitionKeyPrefix + dynamodbKeySeparator + user.Username
+}
+
+func (user User) GetDynamodbSortKey() string {
+	return ""
+}
+
+func GetUserNameFrom(dynamodbPartitionKey string) string {
+	prefix := dynamodbUserPartitionKeyPrefix + dynamodbKeySeparator
+	if !strings.HasPrefix(dynamodbPartitionKey, prefix) {
+		return ""
+	}
+
+	return strings.TrimPrefix(dynamodbPartitionKey, prefix)
 }
 
 type Group struct {
